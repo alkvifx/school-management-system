@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// const API_BASE_URL = 'https://backend-2tbg.onrender.com/api';
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://school-management-system-5vut.onrender.com/api';
+// const API_BASE_URL = 'http://localhost:5000/api';
 // process.env.NEXT_PUBLIC_API_URL ||
 // backend-2tbg.onrender.com
 
