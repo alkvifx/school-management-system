@@ -18,7 +18,6 @@ const chatRoomSchema = new mongoose.Schema(
 );
 
 // Index for faster queries
-chatRoomSchema.index({ classId: 1 });
 chatRoomSchema.index({ teacherId: 1 });
 
 export default mongoose.model("ChatRoom", chatRoomSchema);

@@ -32,6 +32,7 @@ import {
   HelpCircle,
   UserCircle,
   EyeOff,
+  Bot,
 } from 'lucide-react';
 import { ROLES } from '../../utils/constants';
 
@@ -202,6 +203,13 @@ const menuItems = {
       color: 'text-cyan-400',
       bgColor: 'bg-cyan-500/20'
     },
+    {
+      href: '/teacher/ai-help',
+      label: 'AI Help',
+      icon: Bot,
+      color: 'text-violet-400',
+      bgColor: 'bg-violet-500/20'
+    },
   ],
   [ROLES.STUDENT]: [
     {
@@ -252,6 +260,13 @@ const menuItems = {
       icon: UserCircle,
       color: 'text-pink-400',
       bgColor: 'bg-pink-500/20'
+    },
+    {
+      href: '/student/ai-help',
+      label: 'AI Help',
+      icon: Bot,
+      color: 'text-violet-400',
+      bgColor: 'bg-violet-500/20'
     },
   ],
 };

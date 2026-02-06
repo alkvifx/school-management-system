@@ -30,6 +30,4 @@ const starConfigSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-starConfigSchema.index({ schoolId: 1 });
-
 export default mongoose.model("StarConfig", starConfigSchema);

@@ -6,6 +6,40 @@
 // Store request timestamps per IP
 const requestStore = new Map();
 
+// AI chat: per-user timestamps (userId -> timestamps[])
+const aiChatStore = new Map();
+const AI_CHAT_MAX = 20;
+const AI_CHAT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+
+/**
+ * Rate limit AI chat: 20 messages per user per hour.
+ * Must be used after protect middleware (req.user must exist).
+ */
+export const rateLimitAIChat = (maxRequests = AI_CHAT_MAX, windowMs = AI_CHAT_WINDOW_MS) => {
+  return (req, res, next) => {
+    const userId = req.user?._id?.toString?.() || req.user?.id;
+    if (!userId) {
+      return next();
+    }
+    const now = Date.now();
+    if (!aiChatStore.has(userId)) {
+      aiChatStore.set(userId, []);
+    }
+    const requests = aiChatStore.get(userId);
+    const validRequests = requests.filter((t) => now - t < windowMs);
+    aiChatStore.set(userId, validRequests);
+    if (validRequests.length >= maxRequests) {
+      return res.status(429).json({
+        success: false,
+        message: "AI message limit reached. Please try again in an hour.",
+      });
+    }
+    validRequests.push(now);
+    aiChatStore.set(userId, validRequests);
+    next();
+  };
+};
+
 /**
  * Rate limit middleware for OTP requests
  * @param {number} maxRequests - Maximum requests allowed

@@ -1,11 +1,7 @@
 import axios from 'axios';
+import { API_BASE_URL } from '@/src/utils/constants';
 
-const API_BASE_URL = 'https://school-management-system-5vut.onrender.com/api';
-// const API_BASE_URL = 'http://localhost:5000/api';
-// process.env.NEXT_PUBLIC_API_URL ||
-// backend-2tbg.onrender.com
-
-// Create axios instance
+// Create axios instance (uses NEXT_PUBLIC_API_URL or http://localhost:5000/api)
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -33,15 +29,22 @@ apiClient.interceptors.request.use(
 // Response interceptor to handle errors
 apiClient.interceptors.response.use(
   (response) => {
+    if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+      console.log(`[API] ${response.config?.method?.toUpperCase()} ${response.config?.url} → ${response.status}`);
+    }
     return response;
   },
   (error) => {
-    // Handle 401 unauthorized - token expired or invalid
-    if (error.response?.status === 401) {
-      if (typeof window !== 'undefined') {
+    const status = error.response?.status;
+    const message = error.response?.data?.message || error.message;
+
+    if (typeof window !== 'undefined') {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`[API] ${error.config?.method?.toUpperCase()} ${error.config?.url} → ${status}`, message);
+      }
+      if (status === 401) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        // Redirect to login
         window.location.href = '/login';
       }
     }

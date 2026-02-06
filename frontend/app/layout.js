@@ -9,6 +9,13 @@ export const metadata = {
   manifest: "/manifest.json",
   description: `Welcome to ${SCHOOL_INFO.name}. A premier educational institution committed to excellence in education and holistic student development.`,
   keywords: 'school, education, CBSE, academics, admissions, greenwood',
+  icons: {
+    icon: [
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+  },
 };
 
 export default function RootLayout({ children }) {

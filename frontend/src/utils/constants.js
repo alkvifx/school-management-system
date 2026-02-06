@@ -23,4 +23,4 @@ export const PROTECTED_ROUTES = {
 };
 
 // API Base URL
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://school-management-system-5vut.onrender.com/api';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';

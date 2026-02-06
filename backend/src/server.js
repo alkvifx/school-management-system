@@ -1,6 +1,16 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+// Catch unhandled promise rejections (production stability)
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception:", err);
+  process.exit(1);
+});
+
 import { createServer } from "http";
 import { Server } from "socket.io";
 import app from "./app.js";

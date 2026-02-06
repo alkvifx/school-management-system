@@ -10,6 +10,7 @@ import {
   ChevronDown,
   Phone,
   Mail,
+  Download,
   LogIn,
   ArrowBigRight,
   Home,
@@ -29,8 +30,17 @@ import {
   Target
 } from 'lucide-react';
 import { SCHOOL_INFO } from '@/lib/data';
+import { usePwaInstall } from '@/src/hooks/usePwaInstall';
 
 const Navbar = () => {
+  const {
+    isInstalled,
+    supportsPrompt,
+    iosSafariNeedsManualSteps,
+    promptInstall,
+    iosGuideOpen,
+    closeIosGuide,
+  } = usePwaInstall();
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [hoveredLink, setHoveredLink] = useState(null);
@@ -130,6 +140,8 @@ const Navbar = () => {
     Home, Info, BookOpen, Building, Images, Bell, Contact
   };
 
+  const showInstallButton = !isInstalled && supportsPrompt;
+
   const containerVariants = {
     hidden: { opacity: 0, y: -20 },
     visible: {
@@ -204,18 +216,19 @@ const Navbar = () => {
               <motion.a
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                href={`mailto:${SCHOOL_INFO.email}`}
                 className="flex items-center gap-3 group"
               >
-                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-amber-500/20 to-amber-600/10 backdrop-blur-sm border border-amber-400/30 flex items-center justify-center group-hover:bg-amber-500/30 transition-colors">
-                  <Mail size={16} className="text-amber-300" />
-                </div>
-                <div>
-                  <div className="text-xs text-blue-200">Email Us</div>
-                  <div className="font-medium text-sm group-hover:text-amber-300 transition-colors hidden md:block">
-                    {SCHOOL_INFO.email}
-                  </div>
-                </div>
+                { (
+                <button
+                  type="button"
+                  onClick={promptInstall}
+                  className="mr-3 inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
+                  aria-label="Install App"
+                >
+                  <Download size={16} />
+                  <span>Install App</span>
+                </button>
+              )}
               </motion.a>
             </motion.div>
 
@@ -521,6 +534,17 @@ const Navbar = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
+              {/* {showInstallButton && (
+                <button
+                  type="button"
+                  onClick={promptInstall}
+                  className="mr-2 inline-flex items-center gap-2 rounded-full bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 transition-colors"
+                  aria-label="Install App"
+                >
+                  <Download size={14} />
+                  <span className="hidden sm:inline">Install App</span>
+                </button>
+              )} */}
               <Link
                 href="/login"
                 className="relative px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-full font-semibold flex items-center gap-2"
@@ -647,6 +671,18 @@ const Navbar = () => {
                     variants={itemVariants}
                     className="pt-6 border-t border-gray-200"
                   >
+                    {showInstallButton && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsOpen(false);
+                          promptInstall();
+                        }}
+                        className="mb-4 block w-full px-6 py-4 bg-blue-600 text-white rounded-2xl font-semibold text-center text-lg hover:bg-blue-700 transition-colors"
+                      >
+                        Install App
+                      </button>
+                    )}
                     <Link
                       href="/contact"
                       onClick={() => setIsOpen(false)}
@@ -694,6 +730,27 @@ const Navbar = () => {
           />
         </Link>
       </motion.div>
+
+      {iosSafariNeedsManualSteps && iosGuideOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+            <div className="text-lg font-semibold text-gray-900">Install on iPhone/iPad</div>
+            <p className="mt-2 text-sm text-gray-600">
+              Tap <span className="font-semibold">Share</span> then{' '}
+              <span className="font-semibold">Add to Home Screen</span>.
+            </p>
+            <div className="mt-4 flex justify-end">
+              <button
+                type="button"
+                onClick={closeIosGuide}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

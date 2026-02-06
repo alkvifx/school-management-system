@@ -28,7 +28,7 @@ export default function DashboardLayout({ children }) {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-b from-sky-50 via-slate-50 to-white">
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
 
@@ -45,7 +45,7 @@ export default function DashboardLayout({ children }) {
               exit="exit"
               variants={pageVariants}
               transition={{ duration: 0.2 }}
-              className="p-4 sm:p-6 lg:p-8 pb-20 sm:pb-24"
+              className="p-4 sm:p-6 lg:p-8 pb-20 sm:pb-24 space-y-4 sm:space-y-6"
             >
               {children}
             </motion.div>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import ProtectedRoute from '@/src/components/ProtectedRoute';
-import { ROLES } from '@/src/utils/constants';
+import { ROLES, API_BASE_URL } from '@/src/utils/constants';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function ResultAnalysis() {
@@ -15,7 +15,8 @@ export default function ResultAnalysis() {
   const fetchAnalysis = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/ai/result-analysis/${exam}`, { headers: { Authorization: `Bearer ${token}` } });
+      const base = API_BASE_URL.replace(/\/$/, '');
+      const res = await fetch(`${base}/principal/ai/result-analysis/${exam}`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       if (data.success) setAnalysis(data.data);
       else alert(data.message || 'Error');
