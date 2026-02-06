@@ -6,6 +6,7 @@ import { Server } from "socket.io";
 import app from "./app.js";
 import connectDB from "./config/db.js";
 import { initializeSocketIO } from "./utils/socketHandler.js";
+import { initializeWebPush } from "./services/notification.service.js";
 
 // Create HTTP server
 const httpServer = createServer(app);
@@ -30,6 +31,9 @@ app.set("io", io);
 const startServer = async () => {
   try {
     await connectDB();
+
+    // Initialize Web Push (VAPID) once on startup
+    initializeWebPush();
 
     const PORT = process.env.PORT || 5000;
     httpServer.listen(PORT, "0.0.0.0", () => {

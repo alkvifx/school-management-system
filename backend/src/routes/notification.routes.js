@@ -4,6 +4,7 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
   subscribeToPush,
+  unsubscribeFromPush,
   getVapidKey,
 } from "../controllers/notification.controller.js";
 import { protect } from "../middlewares/auth.middleware.js";
@@ -12,27 +13,19 @@ import { validateSchoolAccess } from "../middlewares/school.middleware.js";
 
 const router = express.Router();
 
-// All routes require authentication and school access
+// All routes (except VAPID key) require authentication and school access
 router.use(protect);
 router.use(validateSchoolAccess);
 
 // @route   GET /api/notifications
 // @desc    Get user notifications
 // @access  TEACHER | STUDENT
-router.get(
-  "/",
-  allowRoles("TEACHER", "STUDENT"),
-  getUserNotifications
-);
+router.get("/", allowRoles("TEACHER", "STUDENT"), getUserNotifications);
 
 // @route   GET /api/notifications/me
 // @desc    Get current user's notifications (alias)
 // @access  TEACHER | STUDENT
-router.get(
-  "/me",
-  allowRoles("TEACHER", "STUDENT"),
-  getUserNotifications
-);
+router.get("/me", allowRoles("TEACHER", "STUDENT"), getUserNotifications);
 
 // @route   PUT /api/notifications/:id/read
 // @desc    Mark notification as read
@@ -61,5 +54,10 @@ router.get("/vapid-key", getVapidKey);
 // @desc    Subscribe to push notifications
 // @access  All authenticated users
 router.post("/subscribe", protect, subscribeToPush);
+
+// @route   POST /api/notifications/unsubscribe
+// @desc    Unsubscribe from push notifications
+// @access  All authenticated users
+router.post("/unsubscribe", protect, unsubscribeFromPush);
 
 export default router;

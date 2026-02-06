@@ -377,7 +377,7 @@ export const markAllNotificationsAsRead = asyncHandler(async (req, res) => {
 // @route   POST /api/notifications/subscribe
 // @access  All authenticated users
 export const subscribeToPush = asyncHandler(async (req, res) => {
-  const { subscription } = req.body;
+  const { subscription, deviceInfo } = req.body;
   const user = req.user;
 
   if (!subscription || !subscription.endpoint || !subscription.keys) {
@@ -387,12 +387,37 @@ export const subscribeToPush = asyncHandler(async (req, res) => {
     });
   }
 
-  // Save subscription
-  notificationService.savePushSubscription(user._id.toString(), subscription);
+  await notificationService.savePushSubscription(
+    user._id.toString(),
+    user.role,
+    subscription,
+    deviceInfo || null
+  );
 
   res.status(200).json({
     success: true,
     message: "Push notification subscription saved successfully",
+  });
+});
+
+// @desc    Unsubscribe from push notifications
+// @route   POST /api/notifications/unsubscribe
+// @access  All authenticated users
+export const unsubscribeFromPush = asyncHandler(async (req, res) => {
+  const { endpoint } = req.body;
+
+  if (!endpoint) {
+    return res.status(400).json({
+      success: false,
+      message: "Endpoint is required to unsubscribe",
+    });
+  }
+
+  await notificationService.removePushSubscriptionByEndpoint(endpoint);
+
+  res.status(200).json({
+    success: true,
+    message: "Unsubscribed from push notifications for this device",
   });
 });
 

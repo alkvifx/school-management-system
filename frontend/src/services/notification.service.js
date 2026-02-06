@@ -147,9 +147,10 @@ export const notificationService = {
   /**
    * Subscribe to push notifications
    * @param {object} subscription - PushSubscription object
+   * @param {object} deviceInfo - Optional device info (userAgent, platform, etc.)
    * @returns {Promise<void>}
    */
-  async subscribeToPush(subscription) {
+  async subscribeToPush(subscription, deviceInfo) {
     try {
       const response = await apiClient.post('/notifications/subscribe', {
         subscription: {
@@ -159,6 +160,7 @@ export const notificationService = {
             auth: subscription.keys.auth,
           },
         },
+        deviceInfo: deviceInfo || undefined,
       });
       if (response.data.success) {
         return;

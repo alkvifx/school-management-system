@@ -10,6 +10,11 @@ export function usePushNotifications() {
   const [isLoading, setIsLoading] = useState(false);
   const [subscription, setSubscription] = useState(null);
   const [vapidPublicKey, setVapidPublicKey] = useState(null);
+  const [permission, setPermission] = useState(
+    typeof window !== 'undefined' && 'Notification' in window
+      ? Notification.permission
+      : 'default'
+  );
 
   // Check if push notifications are supported
   useEffect(() => {
@@ -19,6 +24,9 @@ export function usePushNotifications() {
         'PushManager' in window &&
         'Notification' in window;
       setIsSupported(supported);
+      if (supported && 'Notification' in window) {
+        setPermission(Notification.permission);
+      }
     }
   }, []);
 
@@ -36,23 +44,44 @@ export function usePushNotifications() {
     }
   }, [isSupported, vapidPublicKey]);
 
-  // Check existing subscription
+  // Check existing subscription and sync backend when supported
   useEffect(() => {
     if (isSupported && vapidPublicKey) {
       checkSubscription();
     }
-  }, [isSupported, vapidPublicKey]);
+  }, [isSupported, vapidPublicKey, checkSubscription]);
+
+  const getDeviceInfo = () => {
+    if (typeof window === 'undefined') return {};
+    return {
+      userAgent: window.navigator.userAgent,
+      platform: window.navigator.platform,
+      language: window.navigator.language,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    };
+  };
 
   const checkSubscription = useCallback(async () => {
+    if (!isSupported) return;
     try {
       const registration = await navigator.serviceWorker.ready;
       const sub = await registration.pushManager.getSubscription();
       setSubscription(sub);
-      setIsSubscribed(!!sub);
+      const hasSub = !!sub && permission === 'granted';
+      setIsSubscribed(hasSub);
+
+      // If there is an existing browser subscription, ensure backend knows about it
+      if (sub && permission === 'granted') {
+        try {
+          await notificationService.subscribeToPush(sub, getDeviceInfo());
+        } catch (err) {
+          console.error('Failed to sync push subscription with backend:', err);
+        }
+      }
     } catch (error) {
       console.error('Error checking subscription:', error);
     }
-  }, []);
+  }, [isSupported, permission]);
 
   const requestPermission = useCallback(async () => {
     if (!isSupported) {
@@ -61,10 +90,11 @@ export function usePushNotifications() {
     }
 
     try {
-      const permission = await Notification.requestPermission();
-      if (permission === 'granted') {
+      const result = await Notification.requestPermission();
+      setPermission(result);
+      if (result === 'granted') {
         return true;
-      } else if (permission === 'denied') {
+      } else if (result === 'denied') {
         toast.error('Notification permission denied');
         return false;
       } else {
@@ -110,8 +140,8 @@ export function usePushNotifications() {
         applicationServerKey,
       });
 
-      // Send subscription to backend
-      await notificationService.subscribeToPush(sub);
+      // Send subscription to backend with device info
+      await notificationService.subscribeToPush(sub, getDeviceInfo());
 
       setSubscription(sub);
       setIsSubscribed(true);
@@ -175,5 +205,6 @@ export function usePushNotifications() {
     subscribe,
     unsubscribe,
     requestPermission,
+    permission,
   };
 }

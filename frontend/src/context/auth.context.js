@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { authService } from '../services/auth.service';
 import { ROLE_ROUTES, ROLES } from '../utils/constants';
+import { notificationService } from '../services/notification.service';
 
 const AuthContext = createContext(null);
 
@@ -43,7 +44,30 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    // Best-effort: unsubscribe this device's push subscription for current user
+    try {
+      if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.ready;
+        const sub = await registration.pushManager.getSubscription();
+        if (sub) {
+          try {
+            await notificationService.unsubscribeFromPush(sub.endpoint);
+          } catch (err) {
+            // Non-fatal; just log
+            console.error('Failed to unsubscribe push on backend during logout:', err);
+          }
+          try {
+            await sub.unsubscribe();
+          } catch (err) {
+            console.error('Failed to unsubscribe push in browser during logout:', err);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Error while cleaning up push subscription on logout:', e);
+    }
+
     authService.logout();
     setUser(null);
     router.push('/login');

@@ -3,14 +3,21 @@ import StudentFee from "../models/studentFee.model.js";
 import Student from "../models/student.model.js";
 import User from "../models/user.model.js";
 import Class from "../models/class.model.js";
+import PushSubscription from "../models/pushSubscription.model.js";
 import webpush from "web-push";
 
 // Initialize web-push (will be configured with VAPID keys)
 let webPushInitialized = false;
 
 export const initializeWebPush = () => {
-  if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY || !process.env.VAPID_EMAIL) {
-    console.warn("⚠️  Web Push not configured. VAPID keys missing in environment variables.");
+  if (
+    !process.env.VAPID_PUBLIC_KEY ||
+    !process.env.VAPID_PRIVATE_KEY ||
+    !process.env.VAPID_EMAIL
+  ) {
+    console.warn(
+      "⚠️  Web Push not configured. VAPID keys missing in environment variables."
+    );
     return false;
   }
 
@@ -25,22 +32,84 @@ export const initializeWebPush = () => {
   return true;
 };
 
-// Store for push subscriptions (in production, use database)
-// Format: { userId: { endpoint, keys: { p256dh, auth } } }
-const pushSubscriptions = new Map();
-
 /**
- * Store push subscription for a user
+ * Store or update push subscription for a device.
+ * Upserts by endpoint so the same browser endpoint can be reassigned
+ * to a different user (login on another account) without duplicates.
  */
-export const savePushSubscription = (userId, subscription) => {
-  pushSubscriptions.set(userId.toString(), subscription);
+export const savePushSubscription = async (
+  userId,
+  role,
+  subscription,
+  deviceInfo = null
+) => {
+  if (!subscription?.endpoint || !subscription?.keys) return;
+
+  await PushSubscription.findOneAndUpdate(
+    { endpoint: subscription.endpoint },
+    {
+      userId,
+      role,
+      endpoint: subscription.endpoint,
+      keys: {
+        p256dh: subscription.keys.p256dh,
+        auth: subscription.keys.auth,
+      },
+      deviceInfo: deviceInfo || {},
+      isActive: true,
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
 };
 
 /**
- * Get push subscription for a user
+ * Mark a push subscription inactive by endpoint.
+ * We keep the record for diagnostics but stop sending.
  */
-export const getPushSubscription = (userId) => {
-  return pushSubscriptions.get(userId.toString());
+export const removePushSubscriptionByEndpoint = async (endpoint) => {
+  if (!endpoint) return;
+  await PushSubscription.findOneAndUpdate(
+    { endpoint },
+    { isActive: false }
+  ).catch(() => {});
+};
+
+/**
+ * Get all active push subscriptions for a user
+ */
+export const getUserPushSubscriptions = async (userId) => {
+  return PushSubscription.find({ userId, isActive: true }).lean();
+};
+
+/**
+ * Send a push notification to all active subscriptions for a user.
+ * Automatically cleans up subscriptions that are no longer valid.
+ */
+export const sendPushToUser = async (userId, payload) => {
+  if (!webPushInitialized) return;
+  const subscriptions = await getUserPushSubscriptions(userId);
+  if (!subscriptions.length) return;
+
+  const body = JSON.stringify(payload);
+
+  await Promise.all(
+    subscriptions.map(async (sub) => {
+      try {
+        await webpush.sendNotification(
+          {
+            endpoint: sub.endpoint,
+            keys: sub.keys,
+          },
+          body
+        );
+      } catch (err) {
+        console.error("Push send failed for user", userId, err);
+        if (err.statusCode === 410 || err.statusCode === 404) {
+          await removePushSubscriptionByEndpoint(sub.endpoint);
+        }
+      }
+    })
+  );
 };
 
 /**
@@ -95,30 +164,17 @@ export const createAttendanceNotifications = async (attendance, createdByUserId)
 
       notifications.push(notification);
 
-      // Send push notification if subscription exists (PWA)
-      const subscription = getPushSubscription(userId.toString());
-      if (subscription && webPushInitialized) {
-        webpush
-          .sendNotification(
-            subscription,
-            JSON.stringify({
-              title: isPresent ? "Present today ✅" : "Absent today ❌",
-              body: message,
-              icon: "/icon-192x192.png",
-              badge: "/badge-72x72.png",
-              data: {
-                url: "/student/attendance",
-                notificationId: notification._id,
-              },
-            })
-          )
-          .catch((err) => {
-            console.error("Push send failed for user", userId, err);
-            if (err.statusCode === 410 || err.statusCode === 404) {
-              pushSubscriptions.delete(userId.toString());
-            }
-          });
-      }
+      // Send push notification if subscriptions exist (PWA)
+      await sendPushToUser(userId.toString(), {
+        title: isPresent ? "Present today ✅" : "Absent today ❌",
+        body: message,
+        icon: "/icons/icon-192.png",
+        badge: "/icons/icon-192.png",
+        data: {
+          url: "/student/attendance",
+          notificationId: notification._id,
+        },
+      });
     } catch (err) {
       console.error("Failed to create attendance notification for record", record, err);
     }
@@ -161,31 +217,17 @@ export const createFeeReminderNotification = async (studentFee, createdBy) => {
     isRead: false,
   });
 
-  // Send push notification if subscription exists
-  const subscription = getPushSubscription(student.userId._id.toString());
-  if (subscription && webPushInitialized) {
-    try {
-      await webpush.sendNotification(
-        subscription,
-        JSON.stringify({
-          title,
-          body: message,
-          icon: "/icon-192x192.png",
-          badge: "/badge-72x72.png",
-          data: {
-            url: "/fees",
-            notificationId: notification._id,
-          },
-        })
-      );
-    } catch (error) {
-      console.error("Failed to send push notification:", error);
-      // Remove invalid subscription
-      if (error.statusCode === 410 || error.statusCode === 404) {
-        pushSubscriptions.delete(student.userId._id.toString());
-      }
-    }
-  }
+  // Send push notification if subscriptions exist
+  await sendPushToUser(student.userId._id.toString(), {
+    title,
+    body: message,
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+    data: {
+      url: "/fees",
+      notificationId: notification._id,
+    },
+  });
 
   return notification;
 };
