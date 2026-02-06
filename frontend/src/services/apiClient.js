@@ -29,22 +29,15 @@ apiClient.interceptors.request.use(
 // Response interceptor to handle errors
 apiClient.interceptors.response.use(
   (response) => {
-    if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
-      console.log(`[API] ${response.config?.method?.toUpperCase()} ${response.config?.url} → ${response.status}`);
-    }
     return response;
   },
   (error) => {
-    const status = error.response?.status;
-    const message = error.response?.data?.message || error.message;
-
-    if (typeof window !== 'undefined') {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn(`[API] ${error.config?.method?.toUpperCase()} ${error.config?.url} → ${status}`, message);
-      }
-      if (status === 401) {
+    // Handle 401 unauthorized - token expired or invalid
+    if (error.response?.status === 401) {
+      if (typeof window !== 'undefined') {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        // Redirect to login
         window.location.href = '/login';
       }
     }

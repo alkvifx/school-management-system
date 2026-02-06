@@ -26,14 +26,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Dev-only: log request method and path (no body to avoid secrets)
-if (process.env.NODE_ENV === "development") {
-  app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
-    next();
-  });
-}
-
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/super-admin", superAdminRoutes);
@@ -51,22 +43,12 @@ app.use("/api/fees", feeRoutes);
 app.use("/api/ai", aiChatRoutes);
 // Principal AI (templates, notices, posters, result-analysis): /api/principal/ai/*
 app.use("/api/principal/ai", aiRoutes);
-// Health check routes
+// Health check route
 app.get("/", (req, res) => {
   res.json({
     success: true,
     message: "School Management System API is running 🚀",
     version: "1.0.0",
-  });
-});
-
-app.get("/health", (req, res) => {
-  res.status(200).json({
-    success: true,
-    status: "ok",
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    env: process.env.NODE_ENV || "development",
   });
 });
 
