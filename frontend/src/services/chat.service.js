@@ -38,26 +38,25 @@ export const chatService = {
       const response = await apiClient.get(`/chat/${classId}/messages`, { params });
       if (response.data.success) {
         const data = response.data.data;
-        // Backend may return an array OR an object like { messages: [...] }
         if (Array.isArray(data)) return data;
         if (Array.isArray(data?.messages)) return data.messages;
         return [];
       }
       throw new Error(response.data.message || 'Failed to fetch messages');
     } catch (error) {
-      throw new Error(
-        error.response?.data?.message ||
-        error.message ||
-        'Failed to fetch messages'
-      );
+      const msg = error.response?.data?.message || error.message;
+      if (error.response?.status === 404 && msg?.toLowerCase?.().includes('chat room not found')) {
+        return [];
+      }
+      throw new Error(msg || 'Failed to fetch messages');
     }
   },
 
   /**
    * Send a message to a class
    * @param {string} classId
-   * @param {object} messageData - { text?, media?: File }
-   * @returns {Promise<object>}
+   * @param {object} messageData - { text?, media?: File, chatRoomId?: string }
+   * @returns {Promise<object>} { message, chatRoomId }
    */
   async sendMessage(classId, messageData) {
     try {
@@ -71,6 +70,10 @@ export const chatService = {
         formData.append('media', messageData.media);
       }
 
+      if (messageData.chatRoomId) {
+        formData.append('chatRoomId', messageData.chatRoomId);
+      }
+
       const response = await apiClient.post(`/chat/${classId}/message`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -79,8 +82,9 @@ export const chatService = {
 
       if (response.data.success) {
         const data = response.data.data;
-        // Backend may return message directly OR wrapped
-        return data?.message || data;
+        const message = data?.message || data;
+        const chatRoomId = data?.chatRoomId || message?.chatRoomId;
+        return { message, chatRoomId };
       }
       throw new Error(response.data.message || 'Failed to send message');
     } catch (error) {

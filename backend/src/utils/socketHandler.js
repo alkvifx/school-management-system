@@ -179,7 +179,7 @@ export const initializeSocketIO = (io) => {
      */
     socket.on("sendMessage", async (data = {}, ack) => {
       try {
-        const { classId, text, messageType = "text", mediaUrl, clientMessageId } = data;
+        const { classId, chatRoomId: bodyChatRoomId, text, messageType = "text", mediaUrl, clientMessageId } = data;
 
         if (!classId) {
           emitChatError(socket, "Class ID is required");
@@ -217,8 +217,17 @@ export const initializeSocketIO = (io) => {
           return;
         }
 
-        // Find or create chat room
-        let chatRoom = await ChatRoom.findOne({ classId });
+        // Resolve chat room: use provided chatRoomId if valid, else find or create by classId
+        let chatRoom = null;
+        if (bodyChatRoomId && mongoose.Types.ObjectId.isValid(bodyChatRoomId)) {
+          chatRoom = await ChatRoom.findOne({
+            _id: bodyChatRoomId,
+            classId: classDoc._id,
+          });
+        }
+        if (!chatRoom) {
+          chatRoom = await ChatRoom.findOne({ classId: classDoc._id });
+        }
         if (!chatRoom) {
           const classTeacher = classDoc.classTeacherId
             ? await Teacher.findById(classDoc.classTeacherId)
@@ -230,10 +239,19 @@ export const initializeSocketIO = (io) => {
             return;
           }
 
-          chatRoom = await ChatRoom.create({
-            classId: classDoc._id,
-            teacherId: classTeacher._id,
-          });
+          try {
+            chatRoom = await ChatRoom.create({
+              classId: classDoc._id,
+              teacherId: classTeacher._id,
+            });
+          } catch (createErr) {
+            if (createErr.code === 11000 || createErr.code === 11001) {
+              chatRoom = await ChatRoom.findOne({ classId: classDoc._id });
+              if (!chatRoom) throw createErr;
+            } else {
+              throw createErr;
+            }
+          }
         }
 
         // Optional idempotency: prevent duplicates when client retries
@@ -308,7 +326,7 @@ export const initializeSocketIO = (io) => {
         });
 
         console.log(`Message sent in room ${roomName} by ${socket.user.name}`);
-        safeAck(ack, { success: true, message: messageData });
+        safeAck(ack, { success: true, message: messageData, chatRoomId: chatRoom._id });
       } catch (error) {
         console.error("Error sending message:", error);
         emitChatError(socket, "Failed to send message");

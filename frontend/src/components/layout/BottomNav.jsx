@@ -16,12 +16,17 @@ import {
   MessageCircle,
   Award,
   Bot,
+  Building2,
+  FileText,
+  Image,
+  UserCheck,
+  EyeOff,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
- * Role-based bottom nav items for PWA.
- * We limit visible primary tabs (max 4) and move extra items into a "More" menu.
+ * Role-based bottom nav for PWA – full feature parity with web Sidebar.
+ * Primary: up to 4 items; rest in "More" so every feature is reachable.
  */
 const BOTTOM_NAV_BY_ROLE = {
   [ROLES.PRINCIPAL]: {
@@ -32,6 +37,12 @@ const BOTTOM_NAV_BY_ROLE = {
       { href: '/principal/fees', label: 'Fees', icon: CreditCard },
     ],
     secondary: [
+      { href: '/principal/school', label: 'School', icon: Building2 },
+      { href: '/principal/teachers', label: 'Teachers', icon: Users },
+      { href: '/principal/assign', label: 'Assignments', icon: UserCheck },
+      { href: '/principal/website/pages', label: 'Website', icon: FileText },
+      { href: '/principal/website/media', label: 'Media', icon: Image },
+      { href: '/principal/monitoring', label: 'Silent Control', icon: EyeOff },
       { href: '/student/leaderboard', label: 'Leaderboard', icon: Award },
       { href: '/notifications', label: 'Notifications', icon: Bell },
       { href: '/principal/profile', label: 'Profile', icon: UserCircle },
@@ -46,6 +57,8 @@ const BOTTOM_NAV_BY_ROLE = {
     ],
     secondary: [
       { href: '/student/leaderboard', label: 'Leaderboard', icon: Award },
+      { href: '/teacher/classes', label: 'My Classes', icon: BookOpen },
+      { href: '/teacher/marks', label: 'Marks', icon: Award },
       { href: '/teacher/ai-help', label: 'AI Help', icon: Bot },
       { href: '/notifications', label: 'Notifications', icon: Bell },
       { href: '/teacher/profile', label: 'Profile', icon: UserCircle },
@@ -59,12 +72,13 @@ const BOTTOM_NAV_BY_ROLE = {
       { href: '/student/leaderboard', label: 'Leaderboard', icon: Award },
     ],
     secondary: [
+      { href: '/student/chat', label: 'Chat', icon: MessageCircle },
+      { href: '/student/marks', label: 'Marks', icon: Award },
       { href: '/student/ai-help', label: 'AI Help', icon: Bot },
       { href: '/notifications', label: 'Notifications', icon: Bell },
       { href: '/student/profile', label: 'Profile', icon: UserCircle },
     ],
   },
-  // Super-admin: keep minimal bottom nav (no "More" needed)
   [ROLES.SUPER_ADMIN]: {
     primary: [
       { href: '/super-admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },

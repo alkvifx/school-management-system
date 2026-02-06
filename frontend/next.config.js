@@ -2,7 +2,9 @@ const withPWA = require("next-pwa")({
   dest: "public",
   register: true,
   skipWaiting: true,
-  disable: process.env.NODE_ENV === "development", // dev me PWA off
+  disable: process.env.NODE_ENV === "development",
+  // New deployments get a new cache so clients don't serve stale assets
+  cacheId: process.env.npm_package_version || "school-pwa-v1",
 });
 
 const nextConfig = {

@@ -2,41 +2,37 @@
 
 import { useEffect } from 'react';
 
+/**
+ * Registers the PWA service worker. Update prompts are shown via PwaUpdateBanner
+ * (no confirm dialog). Push notification messages are forwarded to the app.
+ */
 export function ServiceWorkerRegistration() {
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      // Register service worker
-      navigator.serviceWorker
-        .register('/sw.js')
-        .then((registration) => {
-          console.log('Service Worker registered:', registration);
-          
-          // Handle service worker updates
-          registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing;
-            if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  // New service worker available, prompt user to refresh
-                  if (confirm('New version available! Refresh to update?')) {
-                    window.location.reload();
-                  }
-                }
-              });
-            }
-          });
-        })
-        .catch((error) => {
-          console.error('Service Worker registration failed:', error);
-        });
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
 
-      // Listen for service worker messages (for push notifications)
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        console.log('Message from service worker:', event.data);
-        // Handle push notification click events here if needed
+    navigator.serviceWorker
+      .register('/sw.js')
+      .then((reg) => {
+        // Check for updates periodically so new deployments are picked up
+        setInterval(() => reg.update(), 60 * 1000);
+      })
+      .catch((err) => {
+        console.error('Service Worker registration failed:', err);
       });
-    }
+
+    // When a new controller takes over (after skipWaiting), reload to use new assets
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      window.location.reload();
+    });
+
+    // Forward push / notification events from SW to the app
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      const data = event?.data;
+      if (data?.type === 'NOTIFICATION_CLICK' && data?.url) {
+        window.location.href = data.url;
+      }
+    });
   }, []);
 
-  return null; // This component doesn't render anything
+  return null;
 }

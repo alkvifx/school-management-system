@@ -1,3 +1,4 @@
+  import mongoose from "mongoose";
   import ChatRoom from "../models/chatRoom.model.js";
   import Message from "../models/message.model.js";
   import Class from "../models/class.model.js";
@@ -106,11 +107,12 @@
    * Send a message (text or media)
    * @route   POST /api/chat/:classId/message
    * @access  Protected (TEACHER, STUDENT)
+   * Body: text?, chatRoomId? (optional; if provided and valid for this class, reuse it)
    */
   export const sendMessage = asyncHandler(async (req, res) => {
     const { classId } = req.params;
     const user = req.user;
-    const { text } = req.body;
+    const { text, chatRoomId: bodyChatRoomId } = req.body;
     const file = req.file;
 
     // Validate: must have either text or file
@@ -121,11 +123,23 @@
       });
     }
 
-    // Find or create chat room
-    let chatRoom = await ChatRoom.findOne({ classId });
+    // Resolve chat room: use provided chatRoomId if valid, else find or create by classId
+    let chatRoom = null;
+    if (bodyChatRoomId && mongoose.Types.ObjectId.isValid(bodyChatRoomId)) {
+      chatRoom = await ChatRoom.findOne({
+        _id: bodyChatRoomId,
+        classId,
+      });
+      if (chatRoom) {
+        // Reuse existing room (no create attempt)
+      }
+    }
+    if (!chatRoom) {
+      chatRoom = await ChatRoom.findOne({ classId });
+    }
     if (!chatRoom) {
       const classDoc = await Class.findById(classId);
-      const classTeacher = await Teacher.findById(classDoc.classTeacherId);
+      const classTeacher = await Teacher.findById(classDoc?.classTeacherId);
 
       if (!classTeacher) {
         return res.status(404).json({
@@ -134,10 +148,24 @@
         });
       }
 
-      chatRoom = await ChatRoom.create({
-        classId: classDoc._id,
-        teacherId: classTeacher._id,
-      });
+      try {
+        chatRoom = await ChatRoom.create({
+          classId: classDoc._id,
+          teacherId: classTeacher._id,
+        });
+      } catch (createErr) {
+        // Duplicate key (race): another request created the room; reuse it
+        if (createErr.code === 11000 || createErr.code === 11001) {
+          chatRoom = await ChatRoom.findOne({ classId });
+          if (chatRoom) {
+            console.log("[chat] Duplicate room create for classId, reusing existing room:", classId);
+          } else {
+            throw createErr;
+          }
+        } else {
+          throw createErr;
+        }
+      }
     }
 
     // Determine message type
@@ -205,6 +233,7 @@
       message: "Message sent successfully",
       data: {
         message: messageData,
+        chatRoomId: chatRoom._id,
       },
     });
   });

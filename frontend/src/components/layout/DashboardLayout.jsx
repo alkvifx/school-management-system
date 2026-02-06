@@ -6,11 +6,13 @@ import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
 import AuthNavbar from './Navbar';
 
+// Lighter animation on mobile for smooth FPS; full on desktop
 const pageVariants = {
-  initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -20 },
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit: { opacity: 0 },
 };
+const pageTransition = { duration: 0.15, ease: 'easeOut' };
 
 export default function DashboardLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -44,7 +46,7 @@ export default function DashboardLayout({ children }) {
               animate="animate"
               exit="exit"
               variants={pageVariants}
-              transition={{ duration: 0.2 }}
+              transition={pageTransition}
               className="p-4 sm:p-6 lg:p-8 pb-20 sm:pb-24 space-y-4 sm:space-y-6"
             >
               {children}

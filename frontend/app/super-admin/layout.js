@@ -1,7 +1,14 @@
 'use client';
 
+import { useIsPWA } from '@/src/hooks/useIsPWA';
 import DashboardLayout from '@/src/components/layout/DashboardLayout';
+import PwaLayout from '@/src/components/layout/PwaLayout';
 
 export default function SuperAdminLayout({ children }) {
-  return <DashboardLayout>{children}</DashboardLayout>;
+  const isPWA = useIsPWA();
+  return isPWA ? (
+    <PwaLayout>{children}</PwaLayout>
+  ) : (
+    <DashboardLayout>{children}</DashboardLayout>
+  );
 }

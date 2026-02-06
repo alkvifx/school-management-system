@@ -26,20 +26,17 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle errors
+// Response interceptor: only clear auth on 401 (not on network/offline errors)
 apiClient.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
   (error) => {
-    // Handle 401 unauthorized - token expired or invalid
-    if (error.response?.status === 401) {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        // Redirect to login
-        window.location.href = '/login';
-      }
+    // Only clear auth on explicit 401 (token expired/invalid), not on network failure
+    const status = error.response?.status;
+    const isNetworkError = !error.response && (error.code === 'ECONNABORTED' || error.message === 'Network Error');
+    if (status === 401 && !isNetworkError && typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }

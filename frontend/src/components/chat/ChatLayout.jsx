@@ -36,7 +36,9 @@ import {
   ChevronRight,
   ChevronLeft,
   X,
-  Menu
+  Menu,
+  WifiOff,
+  RefreshCw,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -58,6 +60,10 @@ import {
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
+import { API_BASE_URL } from '@/src/utils/constants';
+
+// Dev-only: show debug overlay on chat page (set window.__CHAT_DEBUG__ = true)
+const isDev = typeof process !== 'undefined' && process.env.NODE_ENV === 'development';
 
 export default function ChatLayout({
   classes,
@@ -72,13 +78,17 @@ export default function ChatLayout({
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
-  const [activeChatRoomId, setActiveChatRoomId] = useState(null);
+  const [activeChatRoomId, setActiveChatRoomId] = useState(null); // Reused for all messages in this class
   const [activeTab, setActiveTab] = useState('chat');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [muted, setMuted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showDetails, setShowDetails] = useState(false);
-  const [showClassList, setShowClassList] = useState(false);
+  // PWA fix: default true so on mobile the class list is visible on first load (avoids blank screen)
+  const [showClassList, setShowClassList] = useState(true);
+  // PWA fix: isMobile only after mount to avoid hydration mismatch and blank layout
+  const [isMobile, setIsMobile] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
 
   // Mock data
   const [classDetails] = useState({
@@ -94,8 +104,14 @@ export default function ChatLayout({
 
   const currentUserId = user?._id || user?.id || null;
 
-  // Mobile responsive states
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  // Set isMobile only on client after mount (avoids SSR/hydration mismatch and PWA blank screen)
+  useEffect(() => {
+    const check = () => setIsMobile(typeof window !== 'undefined' && window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
   const shouldShowClassList = isMobile ? showClassList : true;
   const shouldShowDetails = isMobile ? false : showDetails;
 
@@ -134,25 +150,41 @@ export default function ChatLayout({
   const classIdRef = useRef(null);
   classIdRef.current = selectedClass ? (selectedClass._id || selectedClass.id) : null;
 
-  // Load messages and join socket room when class is selected; cleanup on change/unmount
+  // Load messages, get-or-create chat room, and join socket room when class is selected; cleanup on change/unmount
   useEffect(() => {
     const classId = selectedClass ? (selectedClass._id || selectedClass.id) : null;
     if (!classId) {
       setMessages([]);
       setActiveChatRoomId(null);
+      activeChatRoomIdRef.current = null;
       joinedClassIdRef.current = null;
       return;
     }
 
     let cancelled = false;
 
-    const loadMessages = async () => {
+    const loadMessagesAndRoom = async () => {
       setLoading(true);
       try {
         const list = await chatService.getMessages(classId);
         if (!cancelled && Array.isArray(list)) {
           const normalized = list.map((m) => normalizeMessage(m)).filter(Boolean);
           setMessages(sortByCreatedAtAsc(normalized));
+        }
+        if (cancelled) return;
+        try {
+          const room = await chatService.getChatRoom(classId);
+          if (!cancelled && room?.id) {
+            setActiveChatRoomId(room.id);
+            activeChatRoomIdRef.current = room.id;
+          } else if (!cancelled && room?._id) {
+            setActiveChatRoomId(room._id);
+            activeChatRoomIdRef.current = room._id;
+          }
+        } catch (roomErr) {
+          if (!cancelled) {
+            // Room may not exist yet; first send will create it. Keep messages.
+          }
         }
       } catch (err) {
         if (!cancelled) {
@@ -164,7 +196,7 @@ export default function ChatLayout({
       }
     };
 
-    loadMessages();
+    loadMessagesAndRoom();
 
     const onReceiveMessage = (data) => {
       const payload = data?.message;
@@ -252,21 +284,29 @@ export default function ChatLayout({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isMobile, showClassList, showDetails]);
 
-  /* send message */
+  /* send message: reuse activeChatRoomId when available to avoid duplicate room creation */
   async function handleSendMessage(data) {
     if (!selectedClass) return;
 
     try {
       setSending(true);
       const classId = selectedClass._id || selectedClass.id;
-      const res = await chatService.sendMessage(classId, data);
-      const msg = normalizeMessage(res);
-      if (!msg?._id) return;
-
-      setMessages((prev) => {
-        if (prev.some((m) => m?._id === msg._id)) return prev;
-        return sortByCreatedAtAsc([...prev, msg]);
+      const chatRoomId = activeChatRoomIdRef.current || activeChatRoomId;
+      const res = await chatService.sendMessage(classId, {
+        ...data,
+        ...(chatRoomId && { chatRoomId: String(chatRoomId) }),
       });
+      const msg = normalizeMessage(res?.message ?? res);
+      if (msg?._id) {
+        setMessages((prev) => {
+          if (prev.some((m) => m?._id === msg._id)) return prev;
+          return sortByCreatedAtAsc([...prev, msg]);
+        });
+      }
+      if (res?.chatRoomId) {
+        setActiveChatRoomId(res.chatRoomId);
+        activeChatRoomIdRef.current = res.chatRoomId;
+      }
     } catch (err) {
       toast.error(err.message || 'Failed to send');
     } finally {
@@ -382,11 +422,11 @@ export default function ChatLayout({
         )}
       </div>
 
-      {/* RIGHT PANEL - Main Chat: full height, flex column so messages scroll and input sticks */}
+      {/* RIGHT PANEL - Main Chat: full height; on mobile show when class list is closed (never fully blank) */}
       <div
         className={cn(
           'flex-1 flex flex-col min-h-0 overflow-hidden',
-          isMobile && !selectedClass && 'hidden',
+          isMobile && shouldShowClassList && 'hidden',
           isMobile && 'min-h-0'
         )}
       >
@@ -644,6 +684,36 @@ export default function ChatLayout({
                   <div ref={messagesEndRef} />
                 </div>
 
+                {/* Connecting / offline banner and retry */}
+                {!isConnected && (
+                  <div className="shrink-0 px-3 py-2 bg-amber-50 dark:bg-amber-950/30 border-t border-amber-200 dark:border-amber-800 flex flex-wrap items-center justify-center gap-2 text-sm">
+                    {socketError ? (
+                      <>
+                        <WifiOff className="h-4 w-4 text-amber-600 shrink-0" />
+                        <span className="text-amber-800 dark:text-amber-200">
+                          {socketError}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-amber-400 text-amber-800 hover:bg-amber-100"
+                          onClick={() => socket?.connect?.()}
+                        >
+                          <RefreshCw className="h-3 w-3 mr-1" />
+                          Retry
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin text-amber-600 shrink-0" />
+                        <span className="text-amber-800 dark:text-amber-200">
+                          Connecting to chat…
+                        </span>
+                      </>
+                    )}
+                  </div>
+                )}
+
                 {/* Message Input: sticky at bottom, safe-area for iOS/PWA */}
                 <div
                   className={cn(
@@ -767,6 +837,44 @@ export default function ChatLayout({
             </div>
           </ScrollArea>
         </motion.div>
+      )}
+
+      {/* Dev-only debug overlay: set window.__CHAT_DEBUG__ = true in console to show */}
+      {isDev && typeof window !== 'undefined' && (showDebug || window.__CHAT_DEBUG__) && (
+        <div
+          className="fixed bottom-20 right-2 z-[100] max-w-[280px] rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs shadow-lg dark:bg-amber-950 dark:border-amber-700"
+          style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+        >
+          <div className="mb-2 font-semibold text-amber-900 dark:text-amber-100">Chat Debug (PWA)</div>
+          <ul className="space-y-1 text-amber-800 dark:text-amber-200">
+            <li>Route: {typeof window !== 'undefined' ? window.location.pathname : '-'}</li>
+            <li>Socket: {isConnected ? '● Connected' : '○ Disconnected'}</li>
+            <li>API: {(API_BASE_URL || '').replace(/\/api\/?$/, '')}</li>
+            <li>Token: {typeof window !== 'undefined' && localStorage.getItem('token') ? 'yes' : 'no'}</li>
+            <li>Messages: {messages.length}</li>
+            <li>isMobile: {String(isMobile)}</li>
+            <li>showClassList: {String(showClassList)}</li>
+            {socketError && <li className="text-red-600">Error: {socketError}</li>}
+          </ul>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="mt-2 h-6 text-xs"
+            onClick={() => setShowDebug(false)}
+          >
+            Close
+          </Button>
+        </div>
+      )}
+      {isDev && typeof window !== 'undefined' && !showDebug && !window.__CHAT_DEBUG__ && (
+        <button
+          type="button"
+          aria-label="Toggle chat debug"
+          className="fixed bottom-20 right-2 z-[99] rounded-full bg-amber-200 p-2 text-amber-900 shadow dark:bg-amber-800 dark:text-amber-100"
+          onClick={() => setShowDebug(true)}
+        >
+          <span className="text-[10px] font-mono">?</span>
+        </button>
       )}
     </div>
   );

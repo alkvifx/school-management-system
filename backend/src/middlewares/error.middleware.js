@@ -15,8 +15,12 @@ export const errorHandler = (err, req, res, next) => {
   // Mongoose duplicate key error
   if (err.code === 11000) {
     statusCode = 400;
-    const field = Object.keys(err.keyPattern)[0];
-    message = `${field} already exists`;
+    const field = Object.keys(err.keyPattern || {})[0];
+    if (field === "classId" && err.keyPattern?.classId) {
+      message = "Chat room for this class already exists. Please retry.";
+    } else {
+      message = field ? `${field} already exists` : "Duplicate key";
+    }
   }
 
   // Mongoose cast error (invalid ObjectId)
