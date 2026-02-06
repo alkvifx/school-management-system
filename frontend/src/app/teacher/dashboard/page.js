@@ -6,7 +6,6 @@ import Link from 'next/link';
 import ProtectedRoute from '@/src/components/ProtectedRoute';
 import { ROLES } from '@/src/utils/constants';
 import { teacherService } from '@/src/services/teacher.service';
-import { profileService } from '@/src/services/profile.service';
 import { StatCard } from '@/src/components/dashboard/StatCard';
 import { DashboardCard } from '@/src/components/dashboard/DashboardCard';
 import { StatCardSkeleton } from '@/src/components/dashboard/LoadingSkeleton';
@@ -179,49 +178,49 @@ export default function TeacherDashboard() {
       setStats(prev => ({ ...prev, loading: true }));
       setLoadingActivity(true);
 
-      const [dashboardRes, profileRes] = await Promise.allSettled([
-        teacherService.getDashboardStats(),
-        profileService.getProfile().catch(() => null),
+      // Simulate multiple API calls
+      const [classesRes, studentsRes, profileRes] = await Promise.allSettled([
+        teacherService.getClasses(),
+        teacherService.getStudents(),
+        teacherService.getProfile(),
       ]);
 
-      const dashboard = dashboardRes.status === 'fulfilled' ? dashboardRes.value : null;
-      const profile = profileRes.status === 'fulfilled' ? profileRes.value : null;
+      const classes = classesRes.status === 'fulfilled' ? classesRes.value?.data || [] : [];
+      const students = studentsRes.status === 'fulfilled' ? studentsRes.value?.data || [] : [];
+      const profile = profileRes.status === 'fulfilled' ? profileRes.value?.data : null;
+
+      // Mock data for demonstration
+      const mockUpcomingClasses = [
+        { id: 1, time: '09:00 AM', subject: 'Mathematics', class: '10-A', duration: '45 mins', status: 'upcoming' },
+        { id: 2, time: '10:30 AM', subject: 'Physics', class: '11-B', duration: '45 mins', status: 'upcoming' },
+        { id: 3, time: '01:00 PM', subject: 'Chemistry', class: '9-C', duration: '45 mins', status: 'upcoming' },
+      ];
+
+      const mockRecentActivity = [
+        { id: 1, action: 'Graded assignments', subject: 'Mathematics', time: '2 hours ago', type: 'grading' },
+        { id: 2, action: 'Uploaded lecture notes', subject: 'Physics', time: '4 hours ago', type: 'upload' },
+        { id: 3, action: 'Sent announcement', subject: 'All Classes', time: '1 day ago', type: 'announcement' },
+        { id: 4, action: 'Updated marks', subject: 'Chemistry', time: '2 days ago', type: 'update' },
+      ];
 
       setTeacherName(profile?.name || 'Teacher');
+      setUpcomingClasses(mockUpcomingClasses);
+      setRecentActivity(mockRecentActivity);
 
-      if (dashboard) {
-        setStats({
-          classes: dashboard.totalClasses ?? 0,
-          students: dashboard.totalStudents ?? 0,
-          attendanceRate: dashboard.attendanceToday != null ? (dashboard.totalStudents > 0 ? Math.round((dashboard.attendanceToday / dashboard.totalStudents) * 1000) / 10 : 0) : 0,
-          pendingTasks: dashboard.pendingTasks ?? 0,
-          loading: false,
-        });
-        const recent = Array.isArray(dashboard.recentStudents) ? dashboard.recentStudents : [];
-        setRecentActivity(
-          recent.slice(0, 5).map((s, i) => ({
-            id: s._id || i,
-            action: `${s.userId?.name ?? 'Student'} – ${s.classId?.name ?? ''}-${s.classId?.section ?? ''}`,
-            subject: 'Student',
-            time: '',
-            type: 'student',
-          }))
-        );
-      } else {
-        setStats(prev => ({ ...prev, loading: false }));
-        setRecentActivity([]);
-        if (dashboardRes.status === 'rejected') {
-          toast.error(dashboardRes.reason?.message || 'Failed to load dashboard');
-        }
-      }
-      setUpcomingClasses([]);
+      setStats({
+        classes: classes.length || 0,
+        students: students.length || 0,
+        assignments: 8, // Mock data
+        attendanceRate: 94.5, // Mock data
+        avgScore: 82.3, // Mock data
+        pendingTasks: 5, // Mock data
+        loading: false,
+      });
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       toast.error('Failed to load dashboard data');
       setStats(prev => ({ ...prev, loading: false }));
-      setRecentActivity([]);
-      setUpcomingClasses([]);
     } finally {
       setLoadingActivity(false);
     }

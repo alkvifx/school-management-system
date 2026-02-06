@@ -21,7 +21,6 @@ import {
   Search,
   ChevronRight,
   School,
-  TrendingUp as TrendingUpIcon,
 } from 'lucide-react';
 
 const PULSE_REFRESH_MS = 3 * 60 * 1000; // 3 min

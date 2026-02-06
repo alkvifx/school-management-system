@@ -144,7 +144,7 @@ const quickActions = [
     icon: BookOpen,
     color: 'from-amber-500 to-orange-500',
     bgColor: 'bg-gradient-to-br from-amber-50 to-orange-50',
-    badge: null,
+    badge: '3 New',
     badgeColor: 'bg-amber-100 text-amber-800'
   },
   {
@@ -154,7 +154,7 @@ const quickActions = [
     icon: FileText,
     color: 'from-rose-500 to-pink-500',
     bgColor: 'bg-gradient-to-br from-rose-50 to-pink-50',
-    badge: null,
+    badge: 'Updated',
     badgeColor: 'bg-rose-100 text-rose-800'
   },
   {
@@ -164,38 +164,17 @@ const quickActions = [
     icon: MessageSquare,
     color: 'from-indigo-500 to-blue-500',
     bgColor: 'bg-gradient-to-br from-indigo-50 to-blue-50',
-    badge: null,
+    badge: '12 Online',
     badgeColor: 'bg-indigo-100 text-indigo-800'
-  },
-  {
-    href: '/student/ai-help',
-    title: 'AI Help',
-    description: 'Ask doubts & get answers',
-    icon: Brain,
-    color: 'from-violet-500 to-purple-500',
-    bgColor: 'bg-gradient-to-br from-violet-50 to-purple-50',
-    badge: null,
-    badgeColor: 'bg-violet-100 text-violet-800'
   },
 ];
 
-const SUBJECT_ICONS = {
-  Mathematics: Calculator,
-  Physics: Atom,
-  Chemistry: Microscope,
-  English: Languages,
-  'Computer Science': Code,
-  Science: Microscope,
-  'Social Studies': Globe,
-  Hindi: Languages,
-  default: BookOpen,
-};
-const SUBJECT_COLORS = [
-  'from-blue-500 to-cyan-500',
-  'from-purple-500 to-violet-500',
-  'from-emerald-500 to-teal-500',
-  'from-amber-500 to-orange-500',
-  'from-rose-500 to-pink-500',
+const subjects = [
+  { name: 'Mathematics', icon: Calculator, color: 'from-blue-500 to-cyan-500', score: 92 },
+  { name: 'Physics', icon: Atom, color: 'from-purple-500 to-violet-500', score: 88 },
+  { name: 'Chemistry', icon: Microscope, color: 'from-emerald-500 to-teal-500', score: 85 },
+  { name: 'English', icon: Languages, color: 'from-amber-500 to-orange-500', score: 90 },
+  { name: 'Computer Science', icon: Code, color: 'from-rose-500 to-pink-500', score: 95 },
 ];
 
 export default function StudentDashboard() {
@@ -207,7 +186,7 @@ export default function StudentDashboard() {
     attendance: 0,
     overallScore: 0,
     streak: 0,
-    assignments: 0,
+    assignments: 2,
     rank: null,
     totalStudents: 0,
     improvement: '',
@@ -215,8 +194,12 @@ export default function StudentDashboard() {
   });
   const [activeTab, setActiveTab] = useState('overview');
   const [showNotifications, setShowNotifications] = useState(false);
-  const [todaysSchedule, setTodaysSchedule] = useState([]);
-  const [subjectsFromMarks, setSubjectsFromMarks] = useState([]);
+  const [todaysSchedule, setTodaysSchedule] = useState([
+    { time: '09:00', subject: 'Mathematics', room: 'Room 301', teacher: 'Mr. Sharma' },
+    { time: '10:30', subject: 'Physics', room: 'Lab 202', teacher: 'Ms. Verma' },
+    { time: '12:00', subject: 'English', room: 'Room 105', teacher: 'Mr. Johnson' },
+    { time: '01:30', subject: 'Computer Science', room: 'Lab 303', teacher: 'Mr. Gupta' },
+  ]);
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -237,17 +220,11 @@ export default function StudentDashboard() {
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const [profileData, rankDataRes, marksDataRes] = await Promise.allSettled([
-        studentService.getProfile(),
-        leaderboardService.getMyRank('weekly'),
-        studentService.getMarks().catch(() => ({ groupedBySubject: {} })),
-      ]);
-
-      const data = profileData.status === 'fulfilled' ? profileData.value : null;
+      const data = await studentService.getProfile();
       setProfile(data);
 
-      if (rankDataRes.status === 'fulfilled' && rankDataRes.value) {
-        const rankData = rankDataRes.value;
+      try {
+        const rankData = await leaderboardService.getMyRank('weekly');
         setStats((prev) => ({
           ...prev,
           totalStars: rankData.totalStars ?? 0,
@@ -256,29 +233,9 @@ export default function StudentDashboard() {
           rank: rankData.classRank ?? rankData.schoolRank ?? null,
           improvement: prev.rank != null && rankData.classRank != null && rankData.classRank < prev.rank ? '↑ Ranks' : ''
         }));
-      } else {
+      } catch (_) {
         setStats((prev) => ({ ...prev, totalStars: 0, attendance: 0, overallScore: 0, rank: null }));
       }
-
-      if (marksDataRes.status === 'fulfilled' && marksDataRes.value?.groupedBySubject) {
-        const grouped = marksDataRes.value.groupedBySubject;
-        const list = Object.entries(grouped).map(([name, entries], i) => {
-          const arr = Array.isArray(entries) ? entries : [];
-          const total = arr.reduce((sum, e) => sum + (e.marks ?? 0), 0);
-          const maxTotal = arr.reduce((sum, e) => sum + (e.maxMarks ?? 100), 0);
-          const score = maxTotal > 0 ? Math.round((total / maxTotal) * 100) : 0;
-          return {
-            name,
-            score,
-            color: SUBJECT_COLORS[i % SUBJECT_COLORS.length],
-          };
-        });
-        setSubjectsFromMarks(list);
-      } else {
-        setSubjectsFromMarks([]);
-      }
-
-      setTodaysSchedule([]);
     } catch (error) {
       console.error('Error fetching profile:', error);
       toast.error('Failed to load dashboard');
@@ -546,43 +503,49 @@ export default function StudentDashboard() {
                 iconColor="text-emerald-600"
               >
                 <div className="space-y-4">
-                  {todaysSchedule.length === 0 ? (
-                    <div className="py-8 text-center text-gray-500 text-sm">
-                      No schedule for today. Check back later or view your timetable.
-                    </div>
-                  ) : (
-                    <AnimatePresence>
-                      {todaysSchedule.map((classItem, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          className="group p-4 rounded-xl border border-gray-200 bg-white hover:bg-gradient-to-r hover:from-white hover:to-emerald-50/50 transition-all duration-300 hover:border-emerald-200"
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Badge variant="outline" className="font-mono">
-                                  {classItem.time}
-                                </Badge>
-                                {classItem.room && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    {classItem.room}
-                                  </Badge>
-                                )}
-                              </div>
-                              <h4 className="font-bold text-gray-900 mb-1">{classItem.subject}</h4>
-                              {classItem.teacher && <p className="text-sm text-gray-600">{classItem.teacher}</p>}
+                  <AnimatePresence>
+                    {todaysSchedule.map((classItem, index) => (
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="group p-4 rounded-xl border border-gray-200 bg-white hover:bg-gradient-to-r hover:from-white hover:to-emerald-50/50 transition-all duration-300 hover:border-emerald-200"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge variant="outline" className="font-mono">
+                                {classItem.time}
+                              </Badge>
+                              <Badge variant="secondary" className="text-xs">
+                                {classItem.room}
+                              </Badge>
                             </div>
+                            <h4 className="font-bold text-gray-900 mb-1">{classItem.subject}</h4>
+                            <p className="text-sm text-gray-600">{classItem.teacher}</p>
+                          </div>
+                          <div className="flex flex-col items-end">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 mb-2 animate-pulse" />
                             <ChevronRight size={16} className="text-gray-400 group-hover:text-emerald-600 transition-colors" />
                           </div>
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
-                  )}
+                        </div>
+
+                        {/* Countdown Timer */}
+                        <div className="mt-3 pt-3 border-t border-gray-100">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-gray-500">Starts in</span>
+                            <span className="text-sm font-medium text-gray-900">
+                              {classItem.time.includes('09') ? 'Morning' : 'Afternoon'} session
+                            </span>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                 </div>
 
+                {/* View Full Schedule */}
                 <div className="mt-6 pt-5 border-t border-gray-200">
                   <Link
                     href="/student/timetable"
@@ -597,7 +560,7 @@ export default function StudentDashboard() {
             </motion.div>
           </div>
 
-          {/* Subjects Performance - from real marks API */}
+          {/* Subjects Performance */}
           <motion.div variants={itemVariants} className="mt-8">
             <DashboardCard
               title="Subject Performance"
@@ -607,82 +570,76 @@ export default function StudentDashboard() {
               headerClassName="border-b border-gray-200 pb-5"
               iconColor="text-blue-600"
             >
-              {subjectsFromMarks.length === 0 ? (
-                <div className="py-8 text-center text-gray-500 text-sm">
-                  No marks recorded yet. Scores will appear here once your teachers add grades.
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                  {subjectsFromMarks.map((subject, index) => {
-                    const Icon = SUBJECT_ICONS[subject.name] || SUBJECT_ICONS.default;
-                    return (
-                      <motion.div
-                        key={subject.name}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: index * 0.1 }}
-                        whileHover={{ y: -4 }}
-                        className="group"
-                      >
-                        <div className="p-5 rounded-2xl border border-gray-200 bg-white hover:shadow-lg transition-all duration-300">
-                          <div className="flex items-center justify-between mb-4">
-                            <div className={`p-3 rounded-xl bg-gradient-to-br ${subject.color} text-white`}>
-                              <Icon className="h-6 w-6" />
-                            </div>
-                            <Badge className={cn(
-                              "text-xs font-bold",
-                              subject.score >= 90 ? "bg-emerald-100 text-emerald-800" :
-                              subject.score >= 80 ? "bg-blue-100 text-blue-800" :
-                              subject.score >= 70 ? "bg-amber-100 text-amber-800" :
-                              "bg-rose-100 text-rose-800"
-                            )}>
-                              {subject.score}%
-                            </Badge>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                {subjects.map((subject, index) => {
+                  const Icon = subject.icon;
+                  return (
+                    <motion.div
+                      key={subject.name}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.1 }}
+                      whileHover={{ y: -4 }}
+                      className="group"
+                    >
+                      <div className="p-5 rounded-2xl border border-gray-200 bg-white hover:shadow-lg transition-all duration-300">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className={`p-3 rounded-xl bg-gradient-to-br ${subject.color} text-white`}>
+                            <Icon className="h-6 w-6" />
                           </div>
+                          <Badge className={cn(
+                            "text-xs font-bold",
+                            subject.score >= 90 ? "bg-emerald-100 text-emerald-800" :
+                            subject.score >= 80 ? "bg-blue-100 text-blue-800" :
+                            subject.score >= 70 ? "bg-amber-100 text-amber-800" :
+                            "bg-rose-100 text-rose-800"
+                          )}>
+                            {subject.score}%
+                          </Badge>
+                        </div>
 
-                          <h4 className="font-bold text-gray-900 mb-2">{subject.name}</h4>
+                        <h4 className="font-bold text-gray-900 mb-2">{subject.name}</h4>
 
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between text-xs text-gray-600">
-                              <span>Progress</span>
-                              <span>{subject.score}%</span>
-                            </div>
-                            <Progress
-                              value={subject.score}
-                              className="h-2"
-                              indicatorClassName={cn(
-                                subject.score >= 90 ? "bg-emerald-500" :
-                                subject.score >= 80 ? "bg-blue-500" :
-                                subject.score >= 70 ? "bg-amber-500" :
-                                "bg-rose-500"
-                              )}
-                            />
-                            <div className="flex items-center justify-between text-xs text-gray-500">
-                              <span>Grade</span>
-                              <span className="font-medium">
-                                {subject.score >= 90 ? 'A+' :
-                                 subject.score >= 80 ? 'A' :
-                                 subject.score >= 70 ? 'B' :
-                                 subject.score >= 60 ? 'C' : 'D'}
-                              </span>
-                            </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-xs text-gray-600">
+                            <span>Progress</span>
+                            <span>{subject.score}%</span>
                           </div>
-
-                          <div className="mt-4 pt-4 border-t border-gray-100">
-                            <Link
-                              href="/student/marks"
-                              className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                            >
-                              View Details
-                              <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform" />
-                            </Link>
+                          <Progress
+                            value={subject.score}
+                            className="h-2"
+                            indicatorClassName={cn(
+                              subject.score >= 90 ? "bg-emerald-500" :
+                              subject.score >= 80 ? "bg-blue-500" :
+                              subject.score >= 70 ? "bg-amber-500" :
+                              "bg-rose-500"
+                            )}
+                          />
+                          <div className="flex items-center justify-between text-xs text-gray-500">
+                            <span>Grade</span>
+                            <span className="font-medium">
+                              {subject.score >= 90 ? 'A+' :
+                               subject.score >= 80 ? 'A' :
+                               subject.score >= 70 ? 'B' :
+                               subject.score >= 60 ? 'C' : 'D'}
+                            </span>
                           </div>
                         </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              )}
+
+                        <div className="mt-4 pt-4 border-t border-gray-100">
+                          <Link
+                            href={`/student/subjects/${subject.name.toLowerCase().replace(/\s+/g, '-')}`}
+                            className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                          >
+                            View Details
+                            <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform" />
+                          </Link>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
             </DashboardCard>
           </motion.div>
 
