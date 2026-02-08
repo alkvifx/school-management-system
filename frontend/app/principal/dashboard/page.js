@@ -95,7 +95,7 @@ export default function PrincipalDashboard() {
       },
       {
         label: 'Create Notice',
-        href: '/notices',
+        href: '/principal/notices',
         icon: Megaphone,
       },
       {
@@ -139,7 +139,7 @@ export default function PrincipalDashboard() {
 
   const communicationLinks = [
     { label: 'Announcements', href: '/principal/notifications', icon: Megaphone },
-    { label: 'Notices', href: '/notices', icon: FileText },
+    { label: 'Notices', href: '/principal/notices', icon: FileText },
     { label: 'Chat', href: '/principal/ai', icon: MessageCircle },
   ];
 

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Download, Menu } from 'lucide-react';
 import { useAuth } from '../../context/auth.context';
 import { NotificationDropdown } from '../NotificationDropdown';
+import { NoticeDropdown } from '../NoticeDropdown';
 import { ROLES } from '../../utils/constants';
 import { motion } from 'framer-motion';
 import { usePwaInstall } from '@/src/hooks/usePwaInstall';
@@ -20,6 +21,7 @@ export default function AuthNavbar({ onMenuClick }) {
     closeIosGuide,
   } = usePwaInstall();
   const showNotifications = user?.role === ROLES.TEACHER || user?.role === ROLES.STUDENT;
+  const showNotices = user?.role === ROLES.TEACHER || user?.role === ROLES.STUDENT;
 
   const profileImageUrl = user?.profileImage?.url || null;
   const userInitial = user?.name?.charAt(0)?.toUpperCase() || 'U';
@@ -30,14 +32,16 @@ export default function AuthNavbar({ onMenuClick }) {
       <div className="px-4 sm:px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {/* Mobile Menu Button */}
-            <button
-              onClick={onMenuClick}
-              className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              aria-label="Toggle menu"
-            >
-              <Menu size={24} className="text-gray-700" />
-            </button>
+            {/* Mobile Menu Button - Show only when onMenuClick is provided */}
+            {onMenuClick && (
+              <button
+                onClick={onMenuClick}
+                className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                aria-label="Toggle menu"
+              >
+                <Menu size={24} className="text-gray-700" />
+              </button>
+            )}
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Dashboard</h1>
               <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">
@@ -58,6 +62,7 @@ export default function AuthNavbar({ onMenuClick }) {
               </button>
             )}
             {showNotifications && <NotificationDropdown />}
+            {showNotices && <NoticeDropdown />}
             <div className="text-right hidden sm:block">
               <p className="text-sm font-medium text-gray-900 truncate max-w-[120px]">
                 {user?.name}

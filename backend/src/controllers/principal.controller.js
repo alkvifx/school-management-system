@@ -487,6 +487,7 @@ export const getAllTeachers = asyncHandler(async (req, res) => {
     success: true,
     data: teachers.map(teacher => ({
       id: teacher._id,
+      userId: teacher.userId._id,
       name: teacher.userId.name,
       email: teacher.userId.email,
       qualification: teacher.qualification,
@@ -511,6 +512,7 @@ export const getAllStudents = asyncHandler(async (req, res) => {
     success: true,
     data: students.map(student => ({
       id: student._id,
+      userId: student.userId._id,
       name: student.userId.name,
       email: student.userId.email,
       rollNumber: student.rollNumber,

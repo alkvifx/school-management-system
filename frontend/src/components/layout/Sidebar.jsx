@@ -21,6 +21,7 @@ import {
   FileText,
   Image,
   Bell,
+  Megaphone,
   X,
   Menu,
   MessageSquare,
@@ -139,6 +140,13 @@ const menuItems = {
       bgColor: 'bg-orange-500/20'
     },
     {
+      href: '/principal/notices',
+      label: 'Notices',
+      icon: Megaphone,
+      color: 'text-rose-400',
+      bgColor: 'bg-rose-500/20'
+    },
+    {
       href: '/principal/monitoring',
       label: 'Silent Control',
       icon: EyeOff,
@@ -210,6 +218,13 @@ const menuItems = {
       color: 'text-violet-400',
       bgColor: 'bg-violet-500/20'
     },
+    {
+      href: '/notices',
+      label: 'Notices',
+      icon: Megaphone,
+      color: 'text-rose-400',
+      bgColor: 'bg-rose-500/20'
+    },
   ],
   [ROLES.STUDENT]: [
     {
@@ -267,6 +282,13 @@ const menuItems = {
       icon: Bot,
       color: 'text-violet-400',
       bgColor: 'bg-violet-500/20'
+    },
+    {
+      href: '/notices',
+      label: 'Notices',
+      icon: Megaphone,
+      color: 'text-rose-400',
+      bgColor: 'bg-rose-500/20'
     },
   ],
 };
@@ -356,13 +378,13 @@ export default function Sidebar({ isOpen, setIsOpen }) {
   return (
     <>
       {/* Mobile Menu Button */}
-      <motion.button
+      {/* <motion.button
   whileTap={{ scale: 0.95 }}
   onClick={() => setIsOpen(prev => !prev)}
   className="lg:hidden fixed top-4 left-4 z-50 p-3 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg"
 >
   <Menu size={20} />
-</motion.button>
+</motion.button> */}
 
 
       {/* Mobile Overlay */}

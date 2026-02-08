@@ -15,6 +15,7 @@ import schoolRoutes from "./routes/school.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
 import profileRoutes from "./routes/profile.routes.js"
 import feeRoutes from "./routes/fee.routes.js";
+import noticeRoutes from "./routes/notice.routes.js";
 import aiChatRoutes from "./routes/aiChat.routes.js";
 import aiRoutes from "./routes/ai.routes.js";
 
@@ -39,6 +40,7 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/fees", feeRoutes);
+app.use("/api/notices", noticeRoutes);
 // AI Doubt Solver Chat (STUDENT + TEACHER): POST /api/ai/chat, GET /api/ai/history
 app.use("/api/ai", aiChatRoutes);
 // Principal AI (templates, notices, posters, result-analysis): /api/principal/ai/*

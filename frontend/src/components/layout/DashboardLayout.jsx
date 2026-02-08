@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
 import AuthNavbar from './Navbar';
+import { UnreadNoticesTrigger } from '@/src/components/UnreadNoticesTrigger';
 
 // Lighter animation on mobile for smooth FPS; full on desktop
 const pageVariants = {
@@ -30,12 +31,13 @@ export default function DashboardLayout({ children }) {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-b from-sky-50 via-slate-50 to-white">
+    <div className="flex min-h-screen overflow-x-hidden bg-gradient-to-b from-sky-50 via-slate-50 to-white">
+      <UnreadNoticesTrigger />
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+      <div className="flex-1 flex flex-col min-w-0">
         <AuthNavbar onMenuClick={toggleSidebar} />
 
         <main className="flex-1 overflow-y-auto">

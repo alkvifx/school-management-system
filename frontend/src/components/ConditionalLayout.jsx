@@ -16,7 +16,11 @@ export function ConditionalLayout({ children }) {
     if (isNotificationsRoute) {
       return <PwaLayout>{children}</PwaLayout>;
     }
-    return <main className="min-h-screen">{children}</main>;
+    return (
+      <main className="min-h-screen overflow-x-hidden overflow-y-auto">
+        {children}
+      </main>
+    );
   }
 
   // Web: don't show Navbar/Footer for authenticated routes
@@ -29,7 +33,11 @@ export function ConditionalLayout({ children }) {
     pathname.startsWith('/login');
 
   if (isAuthRoute) {
-    return <main className="min-h-screen">{children}</main>;
+    return (
+      <main className="min-h-screen overflow-x-hidden overflow-y-auto">
+        {children}
+      </main>
+    );
   }
 
   return (

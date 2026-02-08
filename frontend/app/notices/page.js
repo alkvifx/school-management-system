@@ -1,228 +1,288 @@
 'use client';
 
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Calendar, AlertCircle, Search, Pin } from 'lucide-react';
-import { ANNOUNCEMENTS } from '@/lib/data';
+import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/src/context/auth.context';
+import ProtectedRoute from '@/src/components/ProtectedRoute';
+import { ROLES } from '@/src/utils/constants';
+import { noticeService } from '@/src/services/notice.service';
+import { useSocket } from '@/src/hooks/useSocket';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Megaphone, Pin, Calendar, Loader2, FileText, ChevronLeft } from 'lucide-react';
+import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
 
-const fadeIn = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 },
-};
+const NOTICES_CACHE_KEY = 'notices_list_cache';
+const CACHE_TTL_MS = 2 * 60 * 1000; // 2 min
 
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 },
-  },
-};
+function getCached() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(NOTICES_CACHE_KEY);
+    if (!raw) return null;
+    const { data, at } = JSON.parse(raw);
+    if (Date.now() - at > CACHE_TTL_MS) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+function setCached(data) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(NOTICES_CACHE_KEY, JSON.stringify({ data, at: Date.now() }));
+  } catch {}
+}
 
 export default function NoticesPage() {
-  const [searchQuery, setSearchQuery] = useState('');
+  const router = useRouter();
+  const { user } = useAuth();
+  const [notices, setNotices] = useState([]);
+  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 0 });
+  const [loading, setLoading] = useState(true);
+  const [markingId, setMarkingId] = useState(null);
+  const [apiResponse, setApiResponse] = useState(null);
+  const { socket } = useSocket();
 
-  const filteredAnnouncements = ANNOUNCEMENTS.filter((announcement) =>
-    announcement.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    announcement.description.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Principal: redirect to principal notices (must run before ProtectedRoute)
+  useEffect(() => {
+    if (user?.role === ROLES.PRINCIPAL) {
+      router.replace('/principal/notices');
+    }
+  }, [user?.role, router]);
 
-  const importantNotices = filteredAnnouncements.filter(a => a.important);
-  const regularNotices = filteredAnnouncements.filter(a => !a.important);
+  const fetchNotices = useCallback(async (page = 1) => {
+    if (user?.role === ROLES.PRINCIPAL) return;
+    try {
+      setLoading(true);
+      const data = await noticeService.getMyNotices({ page, limit: 20 });
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[notices] API response:', data);
+      }
+      setApiResponse(data);
+      const noticesList = data?.notices || data?.data?.notices || [];
+      const paginationData = data?.pagination || data?.data?.pagination || { page: 1, limit: 20, total: 0, pages: 0 };
+      setNotices(noticesList);
+      setPagination(paginationData);
+      if (page === 1) setCached(noticesList);
+    } catch (err) {
+      toast.error(err.message || 'Failed to load notices');
+      const cached = getCached();
+      if (cached) setNotices(cached);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.role]);
+
+  useEffect(() => {
+    if (user?.role === ROLES.TEACHER || user?.role === ROLES.STUDENT) {
+      fetchNotices(1);
+    } else if (!user?.role) {
+      setLoading(false);
+    } else {
+      setLoading(false);
+    }
+  }, [user?.role, fetchNotices]);
+
+  useEffect(() => {
+    if (!socket || user?.role !== ROLES.TEACHER && user?.role !== ROLES.STUDENT) return;
+    const onNotice = ({ notice } = {}) => {
+      if (notice) {
+        setNotices((prev) => {
+          const exists = prev.some((n) => (n._id || n.id) === (notice._id || notice.id));
+          if (exists) return prev;
+          return [{ ...notice, isReadByUser: false }, ...prev];
+        });
+      }
+    };
+    socket.on('notice:new', onNotice);
+    return () => socket.off('notice:new', onNotice);
+  }, [socket, user?.role]);
+
+  const handleMarkAsRead = async (noticeId) => {
+    setMarkingId(noticeId);
+    try {
+      await noticeService.markAsRead(noticeId);
+      setNotices((prev) =>
+        prev.map((n) =>
+          (n._id || n.id) === noticeId ? { ...n, isReadByUser: true } : n
+        )
+      );
+    } catch {
+      toast.error('Failed to mark as read');
+    } finally {
+      setMarkingId(null);
+    }
+  };
+
+  const openNotice = (notice) => {
+    if (!(notice.isReadByUser ?? false)) {
+      handleMarkAsRead(notice._id || notice.id);
+    }
+  };
+
+  // Principal gets redirect in useEffect; show spinner until redirect
+  if (user?.role === ROLES.PRINCIPAL) {
+    return (
+      <div className="flex items-center justify-center min-h-[200px]">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+      </div>
+    );
+  }
 
   return (
-    <div>
-      {/* Page Header */}
-      <section className="bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900 text-white py-20">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-center"
-          >
-            <h1 className="text-5xl md:text-6xl font-bold mb-4">Notices & Announcements</h1>
-            <p className="text-xl text-blue-200">Stay updated with the latest school news</p>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Search Bar */}
-      <section className="py-8 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="max-w-2xl mx-auto"
-          >
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-              <input
-                type="text"
-                placeholder="Search notices..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 rounded-full border-2 border-gray-300 focus:border-blue-900 focus:outline-none text-gray-900 font-medium transition"
-              />
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Important Notices */}
-      {importantNotices.length > 0 && (
-        <section className="py-12 bg-gradient-to-br from-red-50 to-orange-50">
-          <div className="container mx-auto px-4">
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              variants={fadeIn}
-              className="mb-8"
-            >
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-red-500 rounded-xl flex items-center justify-center">
-                  <AlertCircle size={24} className="text-white" />
-                </div>
-                <h2 className="text-3xl font-bold text-gray-900">Important Notices</h2>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              variants={staggerContainer}
-              className="grid md:grid-cols-2 gap-6"
-            >
-              {importantNotices.map((notice, index) => (
-                <motion.div
-                  key={notice.id}
-                  variants={fadeIn}
-                  className="bg-white p-6 rounded-2xl shadow-lg border-2 border-red-200 hover:shadow-xl transition-all group"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0">
-                      <div className="w-20 h-20 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex flex-col items-center justify-center text-white shadow-lg">
-                        <div className="text-xs font-semibold">
-                          {new Date(notice.date).toLocaleDateString('en-US', { month: 'short' })}
-                        </div>
-                        <div className="text-3xl font-bold">{new Date(notice.date).getDate()}</div>
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Pin size={18} className="text-red-500" />
-                        <span className="inline-block px-3 py-1 bg-red-500 text-white text-xs rounded-full font-semibold">
-                          Important
-                        </span>
-                      </div>
-                      <h3 className="font-bold text-gray-900 mb-2 text-xl group-hover:text-red-600 transition">
-                        {notice.title}
-                      </h3>
-                      <p className="text-gray-600 leading-relaxed">{notice.description}</p>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </motion.div>
+    <ProtectedRoute allowedRoles={[ROLES.TEACHER, ROLES.STUDENT]}>
+      <div className="space-y-6 min-h-[calc(100vh-120px)] p-4 overflow-visible">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => router.back()} aria-label="Back">
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Notices</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Announcements from your school</p>
           </div>
-        </section>
-      )}
+        </div>
 
-      {/* Regular Notices */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeIn}
-            className="mb-8"
-          >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-blue-900 rounded-xl flex items-center justify-center">
-                <Calendar size={24} className="text-white" />
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Megaphone className="h-5 w-5" />
+              All notices
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* {process.env.NODE_ENV === 'development' && apiResponse && (
+              <pre className="mb-4 max-h-64 overflow-auto rounded-md bg-gray-50 p-3 text-xs text-gray-700 border">
+                {JSON.stringify(apiResponse, null, 2)}
+              </pre>
+            )} */}
+            {loading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
               </div>
-              <h2 className="text-3xl font-bold text-gray-900">All Notices</h2>
-            </div>
-          </motion.div>
-
-          {regularNotices.length > 0 ? (
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              variants={staggerContainer}
-              className="space-y-4 max-w-5xl mx-auto"
-            >
-              {regularNotices.map((notice, index) => (
-                <motion.div
-                  key={notice.id}
-                  variants={fadeIn}
-                  className="bg-gradient-to-r from-gray-50 to-blue-50 p-6 rounded-2xl border-2 border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all group"
-                >
-                  <div className="flex flex-col sm:flex-row items-start gap-4">
-                    <div className="flex-shrink-0">
-                      <div className="w-20 h-20 bg-gradient-to-br from-blue-900 to-blue-700 rounded-2xl flex flex-col items-center justify-center text-white shadow-lg">
-                        <div className="text-xs font-semibold">
-                          {new Date(notice.date).toLocaleDateString('en-US', { month: 'short' })}
-                        </div>
-                        <div className="text-3xl font-bold">{new Date(notice.date).getDate()}</div>
-                        <div className="text-xs">
-                          {new Date(notice.date).getFullYear()}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-gray-900 mb-2 text-xl group-hover:text-blue-900 transition">
-                        {notice.title}
-                      </h3>
-                      <p className="text-gray-600 leading-relaxed">{notice.description}</p>
-                    </div>
+            ) : notices.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-center py-16 text-gray-500"
+              >
+                <FileText className="h-14 w-14 mx-auto mb-4 text-gray-300" />
+                <p className="font-medium">No notices yet</p>
+                <p className="text-sm mt-1">When your principal sends a notice, it will appear here.</p>
+              </motion.div>
+            ) : (
+              <ScrollArea className="max-h-[calc(100vh-220px)] pr-4">
+                <div className="space-y-3">
+                  <AnimatePresence>
+                    {notices.map((notice, i) => {
+                      const isUnread = !(notice.isReadByUser ?? false);
+                      const id = notice._id || notice.id;
+                      return (
+                        <motion.div
+                          key={id}
+                          initial={{ opacity: 0, y: 12 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ delay: i * 0.04 }}
+                          onClick={() => openNotice(notice)}
+                          className={`rounded-xl border p-4 cursor-pointer transition shadow-sm ${
+                            isUnread
+                              ? 'bg-rose-50/50 border-rose-200 hover:bg-rose-50'
+                              : 'bg-white border-gray-200 hover:bg-gray-50'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-semibold text-gray-900">{notice.title}</span>
+                                {isUnread && (
+                                  <Badge className="bg-rose-500 text-white text-xs">New</Badge>
+                                )}
+                                {notice.isImportant && (
+                                  <Badge variant="secondary" className="gap-1 bg-amber-100 text-amber-800">
+                                    <Pin className="h-3 w-3" /> Important
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="mt-2 text-sm text-gray-600 whitespace-pre-wrap">
+                                {notice.message}
+                              </p>
+                              <p className="mt-2 text-xs text-gray-400 flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {new Date(notice.createdAt).toLocaleString()}
+                              </p>
+                              {notice.attachments?.length > 0 && (
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {notice.attachments.map((url, idx) => (
+                                    <a
+                                      key={idx}
+                                      href={url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-xs text-blue-600 hover:underline"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      Attachment {idx + 1}
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            {isUnread && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                disabled={markingId === id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMarkAsRead(id);
+                                }}
+                              >
+                                {markingId === id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  'Mark read'
+                                )}
+                              </Button>
+                            )}
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
+                </div>
+                {pagination.pages > 1 && (
+                  <div className="mt-6 flex justify-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={pagination.page <= 1}
+                      onClick={() => fetchNotices(pagination.page - 1)}
+                    >
+                      Previous
+                    </Button>
+                    <span className="flex items-center px-3 text-sm text-gray-600">
+                      Page {pagination.page} of {pagination.pages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={pagination.page >= pagination.pages}
+                      onClick={() => fetchNotices(pagination.page + 1)}
+                    >
+                      Next
+                    </Button>
                   </div>
-                </motion.div>
-              ))}
-            </motion.div>
-          ) : (
-            <div className="text-center py-20">
-              <p className="text-gray-500 text-xl">No notices found.</p>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Subscribe Section */}
-      <section className="py-20 bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900 text-white">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeIn}
-            className="max-w-2xl mx-auto text-center"
-          >
-            <h2 className="text-4xl font-bold mb-4">Stay Informed</h2>
-            <p className="text-xl text-blue-200 mb-8">
-              Never miss an important update. Contact our office to subscribe to notice notifications.
-            </p>
-            <div className="flex flex-wrap justify-center gap-4">
-              <a
-                href="tel:+911234567890"
-                className="px-8 py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-full font-semibold hover:shadow-2xl hover:scale-105 transition-all"
-              >
-                Call Office
-              </a>
-              <a
-                href="mailto:info@greenwoodschool.edu"
-                className="px-8 py-4 bg-white/10 backdrop-blur-sm border-2 border-white text-white rounded-full font-semibold hover:bg-white hover:text-blue-900 transition-all"
-              >
-                Email Us
-              </a>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-    </div>
+                )}
+              </ScrollArea>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </ProtectedRoute>
   );
 }

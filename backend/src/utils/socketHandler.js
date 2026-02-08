@@ -103,6 +103,9 @@ export const initializeSocketIO = (io) => {
     userSockets.set(userId, existing);
     socketMeta.set(socket.id, { userId });
 
+    // Join personal room for notices (notice:new targeted to this user)
+    socket.join(`user-${userId}`);
+
     // Guard against runaway reconnection loops / abuse
     if (existing.size > MAX_SOCKETS_PER_USER) {
       console.warn(

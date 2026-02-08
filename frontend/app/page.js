@@ -268,7 +268,7 @@ export default function HomePage() {
   }, [shouldReduceMotion, isMobile, HERO_SLIDES.length]);
 
   return (
-    <div ref={containerRef} className="overflow-hidden">
+    <div ref={containerRef} className="min-h-screen overflow-x-hidden overflow-y-auto">
       {/* <PwaInstallPrompt delayMs={2500} /> */}
       {/* Hero Section - Simplified */}
       <section className="relative min-h-[600px] overflow-hidden bg-blue-950">
