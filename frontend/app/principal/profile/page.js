@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   User,
   Mail,
@@ -274,12 +273,7 @@ export default function ProfilePage() {
     return (
       <ProtectedRoute>
         <div className="flex items-center justify-center min-h-[60vh]">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          >
-            <Loader2 className="text-blue-600" size={48} />
-          </motion.div>
+          <Loader2 className="text-blue-600 animate-spin" size={48} />
         </div>
       </ProtectedRoute>
     );
@@ -288,11 +282,7 @@ export default function ProfilePage() {
   return (
     <ProtectedRoute>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-8"
-        >
+        <div className="space-y-8">
           {/* Header */}
           <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white">
             <div className="flex items-center justify-between">
@@ -337,7 +327,7 @@ export default function ProfilePage() {
                       />
                       <label
                         htmlFor="profile-image-input"
-                        className="absolute bottom-2 right-2 bg-white text-blue-600 rounded-full p-3 cursor-pointer hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl border"
+                        className="absolute bottom-2 right-2 bg-white text-blue-600 rounded-full p-3 cursor-pointer hover:bg-blue-50 shadow-lg border"
                       >
                         <Camera size={20} />
                       </label>
@@ -346,7 +336,7 @@ export default function ProfilePage() {
                       {profileImage && (
                         <button
                           onClick={handleRemoveImage}
-                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-all shadow-lg"
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 shadow-lg"
                           aria-label="Remove image"
                         >
                           <X size={16} />
@@ -430,7 +420,7 @@ export default function ProfilePage() {
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Enter your name"
                     />
                   </div>
@@ -458,14 +448,14 @@ export default function ProfilePage() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         disabled={otpType === 'email'}
-                        className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
+                        className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
                         placeholder="Enter your email"
                       />
                       {otpType !== 'email' && email !== profile?.email && (
                         <button
                           onClick={() => handleSendOTP('email')}
                           disabled={sendingOTP || !email.trim() || email === profile?.email}
-                          className="px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-sm hover:shadow"
+                          className="px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm"
                         >
                           {sendingOTP ? (
                             <Loader2 size={16} className="animate-spin" />
@@ -503,14 +493,14 @@ export default function ProfilePage() {
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         disabled={otpType === 'phone'}
-                        className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
+                        className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
                         placeholder="Enter your phone number"
                       />
                       {otpType !== 'phone' && phone !== profile?.phone && (
                         <button
                           onClick={() => handleSendOTP('phone')}
                           disabled={sendingOTP || !phone.trim() || phone === profile?.phone}
-                          className="px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-sm hover:shadow"
+                          className="px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm"
                         >
                           {sendingOTP ? (
                             <Loader2 size={16} className="animate-spin" />
@@ -544,88 +534,77 @@ export default function ProfilePage() {
                   </div>
 
                   {/* OTP Verification Modal */}
-                  <AnimatePresence>
-                    {otpType && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 space-y-4"
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="bg-white p-3 rounded-xl shadow-sm">
-                            <Shield size={24} className="text-blue-600" />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-blue-900 mb-1">
-                              Verify your {otpType === 'email' ? 'email' : 'phone number'}
-                            </h4>
-                            <p className="text-sm text-gray-600">
-                              Enter the 6-digit code sent to{' '}
-                              <strong className="text-blue-700">
-                                {otpType === 'email' ? pendingEmail : pendingPhone}
-                              </strong>
-                            </p>
-                          </div>
+                  {otpType && (
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 space-y-4">
+                      <div className="flex items-start gap-3">
+                        <div className="bg-white p-3 rounded-xl shadow-sm">
+                          <Shield size={24} className="text-blue-600" />
                         </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-blue-900 mb-1">
+                            Verify your {otpType === 'email' ? 'email' : 'phone number'}
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            Enter the 6-digit code sent to{' '}
+                            <strong className="text-blue-700">
+                              {otpType === 'email' ? pendingEmail : pendingPhone}
+                            </strong>
+                          </p>
+                        </div>
+                      </div>
 
-                        <div className="space-y-4">
-                          <OTPInput
-                            value={otp}
-                            onChange={setOtp}
-                            onComplete={handleVerifyOTP}
-                            disabled={verifyingOTP}
-                            error={otpError}
-                            className="justify-center"
-                          />
+                      <div className="space-y-4">
+                        <OTPInput
+                          value={otp}
+                          onChange={setOtp}
+                          onComplete={handleVerifyOTP}
+                          disabled={verifyingOTP}
+                          error={otpError}
+                          className="justify-center"
+                        />
 
-                          {otpError && (
-                            <motion.div
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg"
-                            >
-                              <AlertCircle size={16} />
-                              <span className="text-sm">{otpError}</span>
-                            </motion.div>
-                          )}
+                        {otpError && (
+                          <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg">
+                            <AlertCircle size={16} />
+                            <span className="text-sm">{otpError}</span>
+                          </div>
+                        )}
 
-                          <div className="flex gap-3 pt-2">
+                        <div className="flex gap-3 pt-2">
+                          <button
+                            onClick={() => handleVerifyOTP()}
+                            disabled={verifyingOTP || otp.length !== 6}
+                            className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                          >
+                            {verifyingOTP ? (
+                              <span className="flex items-center justify-center gap-2">
+                                <Loader2 size={16} className="animate-spin" />
+                                Verifying...
+                              </span>
+                            ) : (
+                              'Confirm Verification'
+                            )}
+                          </button>
+
+                          <div className="flex gap-2">
                             <button
-                              onClick={() => handleVerifyOTP()}
-                              disabled={verifyingOTP || otp.length !== 6}
-                              className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
+                              onClick={() => handleSendOTP(otpType)}
+                              disabled={resendTimer > 0 || sendingOTP}
+                              className="px-4 py-3 border border-gray-300 rounded-xl hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                             >
-                              {verifyingOTP ? (
-                                <span className="flex items-center justify-center gap-2">
-                                  <Loader2 size={16} className="animate-spin" />
-                                  Verifying...
-                                </span>
-                              ) : (
-                                'Confirm Verification'
-                              )}
+                              {resendTimer > 0 ? `Resend (${resendTimer}s)` : 'Resend'}
                             </button>
-
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => handleSendOTP(otpType)}
-                                disabled={resendTimer > 0 || sendingOTP}
-                                className="px-4 py-3 border border-gray-300 rounded-xl hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
-                              >
-                                {resendTimer > 0 ? `Resend (${resendTimer}s)` : 'Resend'}
-                              </button>
-                              <button
-                                onClick={handleCancelOTP}
-                                className="px-4 py-3 border border-gray-300 rounded-xl hover:bg-white transition-all text-sm"
-                              >
-                                Cancel
-                              </button>
-                            </div>
+                            <button
+                              onClick={handleCancelOTP}
+                              className="px-4 py-3 border border-gray-300 rounded-xl hover:bg-white text-sm"
+                            >
+                              Cancel
+                            </button>
                           </div>
                         </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Action Buttons */}
                   <div className="pt-6 border-t">
@@ -633,7 +612,7 @@ export default function ProfilePage() {
                       <button
                         onClick={handleSave}
                         disabled={!hasChanges || saving || otpType !== null}
-                        className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+                        className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2 shadow-lg"
                       >
                         {saving ? (
                           <>
@@ -656,7 +635,7 @@ export default function ProfilePage() {
                             setPhone(profile?.phone || '');
                             handleRemoveImage();
                           }}
-                          className="px-6 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all font-medium"
+                          className="px-6 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 font-medium"
                         >
                           Discard Changes
                         </button>
@@ -667,39 +646,32 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
+
+          {/* Logout Section */}
           <div className="p-4 border-t border-gray-800">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => {
-                        logout();
-                      }}
-                      className="relative w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl overflow-hidden group"
-                    >
-                      {/* Background gradient */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-orange-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <button
+              onClick={() => {
+                logout();
+              }}
+              className="relative w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl hover:bg-red-50 group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-red-500 to-orange-500">
+                  <LogOut className="w-5 h-5 text-white" />
+                </div>
+                <span className="font-medium text-gray-600">
+                  Logout
+                </span>
+              </div>
+            </button>
 
-                      {/* Glow effect */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-red-500/0 via-red-500/5 to-red-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-
-                      {/* Content */}
-                      <div className="relative flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-gradient-to-br from-red-500 to-orange-500 group-hover:from-red-600 group-hover:to-orange-600 transition-all duration-300">
-                          <LogOut className="w-5 h-5 text-white" />
-                        </div>
-                        <span className="font-medium text-gray-600 group-hover:text-black transition-colors">
-                          Logout
-                        </span>
-                      </div>
-                    </motion.button>
-
-                    <div className="mt-4 text-center">
-                      <p className="text-xs text-gray-500">
-                        Version 2.0 • © 2024 EduManage
-                      </p>
-                    </div>
-                  </div>
-        </motion.div>
+            <div className="mt-4 text-center">
+              <p className="text-xs text-gray-500">
+                Version 2.0 • © 2024 EduManage
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </ProtectedRoute>
   );
