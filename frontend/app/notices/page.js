@@ -136,14 +136,14 @@ export default function NoticesPage() {
 
   return (
     <ProtectedRoute allowedRoles={[ROLES.TEACHER, ROLES.STUDENT]}>
-      <div className="space-y-6 min-h-[calc(100vh-120px)] p-4 overflow-visible">
+      <div className="app-bg-texture min-h-[calc(100vh-120px)] space-y-6 p-4 overflow-visible">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => router.back()} aria-label="Back">
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Notices</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Announcements from your school</p>
+            <h1 className="text-2xl font-bold text-[hsl(var(--app-text))]" style={{ fontFamily: 'var(--app-display)' }}>Notices</h1>
+            <p className="text-sm text-[hsl(var(--app-text-muted))] mt-0.5">Announcements from your school</p>
           </div>
         </div>
 
@@ -189,16 +189,16 @@ export default function NoticesPage() {
                           exit={{ opacity: 0 }}
                           transition={{ delay: i * 0.04 }}
                           onClick={() => openNotice(notice)}
-                          className={`rounded-xl border p-4 cursor-pointer transition shadow-sm ${
+                          className={`rounded-[var(--app-radius)] border p-4 cursor-pointer transition shadow-[var(--app-shadow)] ${
                             isUnread
-                              ? 'bg-rose-50/50 border-rose-200 hover:bg-rose-50'
-                              : 'bg-white border-gray-200 hover:bg-gray-50'
+                              ? 'bg-rose-50/50 border-rose-200 hover:bg-rose-50/80'
+                              : 'bg-[hsl(var(--app-surface))] border-[hsl(var(--app-border))] hover:bg-[hsl(var(--app-accent-muted))]/30'
                           }`}
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
                               <div className="flex flex-wrap items-center gap-2">
-                                <span className="font-semibold text-gray-900">{notice.title}</span>
+                                <span className="font-semibold text-[hsl(var(--app-text))]">{notice.title}</span>
                                 {isUnread && (
                                   <Badge className="bg-rose-500 text-white text-xs">New</Badge>
                                 )}
@@ -208,11 +208,11 @@ export default function NoticesPage() {
                                   </Badge>
                                 )}
                               </div>
-                              <p className="mt-2 text-sm text-gray-600 whitespace-pre-wrap">
+                              <p className="mt-2 text-sm text-[hsl(var(--app-text-muted))] whitespace-pre-wrap">
                                 {notice.message}
                               </p>
                               <p className="mt-2 text-xs text-gray-400 flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
+                                <Calendar className="h-3 w-3 text-[hsl(var(--app-text-muted))]" />
                                 {new Date(notice.createdAt).toLocaleString()}
                               </p>
                               {notice.attachments?.length > 0 && (
@@ -223,7 +223,7 @@ export default function NoticesPage() {
                                       href={url}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="text-xs text-blue-600 hover:underline"
+                                      className="text-xs text-[hsl(var(--app-accent))] hover:underline"
                                       onClick={(e) => e.stopPropagation()}
                                     >
                                       Attachment {idx + 1}

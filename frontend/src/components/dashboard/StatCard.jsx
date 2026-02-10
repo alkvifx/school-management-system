@@ -24,8 +24,8 @@ export function StatCard({
     <motion.div
       variants={cardVariants}
       className={cn(
-        'group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm',
-        'border border-gray-100',
+        'group relative overflow-hidden rounded-[var(--app-radius-lg)] p-6',
+        'bg-[hsl(var(--app-surface))] shadow-[var(--app-shadow)] border border-[hsl(var(--app-border))]',
         'transition-all duration-300',
         'hover:shadow-lg hover:-translate-y-1',
         className
@@ -33,19 +33,19 @@ export function StatCard({
       {...props}
     >
       {/* Gradient Background on Hover */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-50/0 to-amber-50/0 group-hover:from-blue-50/50 group-hover:to-amber-50/30 transition-all duration-300" />
+      <div className="absolute inset-0 bg-gradient-to-br from-transparent to-[hsl(var(--app-accent-muted))]/0 group-hover:to-[hsl(var(--app-accent-muted))]/30 transition-all duration-300" />
       
       <div className="relative z-10">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
-            <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
+            <p className="text-sm font-medium text-[hsl(var(--app-text-muted))] mb-1">{title}</p>
             {loading ? (
               <div className="h-8 w-24 bg-gray-200 rounded animate-pulse" />
             ) : (
               <div className="flex items-baseline gap-2 flex-wrap">
                 <h3 className={cn(
-                  'text-3xl font-bold',
-                  typeof value === 'number' ? 'text-gray-900' : 'text-gray-900 text-2xl'
+                  'text-3xl font-bold text-[hsl(var(--app-text))]',
+                  typeof value !== 'number' && 'text-2xl'
                 )}>
                   {value}
                 </h3>
@@ -63,13 +63,13 @@ export function StatCard({
             )}
           </div>
           {Icon && (
-            <div className="p-3 rounded-xl bg-gradient-to-br from-blue-900 to-blue-700 text-white shadow-md group-hover:scale-110 transition-transform duration-300">
+            <div className="p-3 rounded-[var(--app-radius)] bg-[hsl(var(--app-accent))] text-white shadow-[var(--app-shadow)] group-hover:scale-105 transition-transform duration-300">
               <Icon size={24} />
             </div>
           )}
         </div>
         {description && (
-          <p className="text-xs text-gray-500 mt-2">{description}</p>
+          <p className="text-xs text-[hsl(var(--app-text-muted))] mt-2">{description}</p>
         )}
       </div>
     </motion.div>

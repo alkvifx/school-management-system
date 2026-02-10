@@ -6,9 +6,13 @@ import PwaLayout from '@/src/components/layout/PwaLayout';
 
 export default function TeacherLayout({ children }) {
   const isPWA = useIsPWA();
-  return isPWA ? (
-    <PwaLayout>{children}</PwaLayout>
-  ) : (
-    <DashboardLayout>{children}</DashboardLayout>
+  return (
+    <>
+      {isPWA ? (
+        <PwaLayout>{children}</PwaLayout>
+      ) : (
+        <DashboardLayout>{children}</DashboardLayout>
+      )}
+    </>
   );
 }

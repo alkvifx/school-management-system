@@ -7,7 +7,8 @@ import { ROLES } from '@/src/utils/constants';
 import { cn } from '@/lib/utils';
 import BottomNav from './BottomNav';
 import { NotificationDropdown } from '@/src/components/NotificationDropdown';
-import { UserCircle, LogOut } from 'lucide-react';
+import { usePwaInstall } from '@/src/hooks/usePwaInstall';
+import { UserCircle, LogOut, Download, School } from 'lucide-react';
 
 /**
  * PWA-only layout: header with title + actions, content, fixed bottom nav.
@@ -46,6 +47,12 @@ function getPageTitle(pathname) {
 export default function PwaLayout({ children }) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { isInstallable, promptInstall, isInstalled } = usePwaInstall();
+
+  const isPrincipalDashboard = user?.role === ROLES.PRINCIPAL && pathname === '/principal/dashboard';
+  const headerTitle = isPrincipalDashboard
+    ? (user?.school?.name || 'Your School')
+    : getPageTitle(pathname);
 
   const isLoginScreen =
     pathname === '/login' ||
@@ -68,22 +75,44 @@ export default function PwaLayout({ children }) {
             : '/principal/profile';
 
   return (
-    <div className="flex flex-col min-h-screen min-h-[100dvh] bg-gray-50 dark:bg-gray-950">
-      {/* PWA header: safe area, title, notifications, profile / logout */}
+    <div className="flex flex-col min-h-screen min-h-[100dvh] bg-transparent">
+      {/* PWA header: safe area, title (or school name on dashboard), PWA Install, notifications, profile / logout */}
       {showHeader && (
         <header
-          className={cn(
-            'sticky top-0 z-30 flex-shrink-0',
-            'bg-white/95 dark:bg-slate-900/95 backdrop-blur-md',
-            'border-b border-slate-200 dark:border-slate-800',
-            'pt-[env(safe-area-inset-top)]'
-          )}
+          className="sticky top-0 z-30 flex-shrink-0 backdrop-blur-md pt-[env(safe-area-inset-top)] bg-[hsl(var(--app-surface))]/95 border-b border-[hsl(var(--app-border))]"
         >
-          <div className="flex h-12 sm:h-14 items-center justify-between px-4 gap-2">
-            <h1 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100 truncate flex-1 min-w-0">
-              {getPageTitle(pathname)}
-            </h1>
-            <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex h-12 sm:h-14 min-h-[44px] items-center justify-between gap-2 px-4">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              {isPrincipalDashboard && (
+                <div
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white"
+                  style={{ backgroundColor: 'hsl(var(--app-accent))' }}
+                >
+                  <School className="h-4 w-4" />
+                </div>
+              )}
+              <h1
+                className="truncate text-base font-semibold text-[hsl(var(--app-text))] sm:text-lg"
+                style={{ fontFamily: 'var(--app-display)' }}
+              >
+                {headerTitle}
+              </h1>
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              {isInstallable && !isInstalled && (
+                <button
+                  type="button"
+                  onClick={() => promptInstall()}
+                  className="flex min-h-[40px] min-w-[40px] items-center justify-center rounded-lg transition-colors active:scale-95"
+                  style={{
+                    backgroundColor: 'hsl(var(--app-accent-muted))',
+                    color: 'hsl(var(--app-accent))',
+                  }}
+                  aria-label="Install app"
+                >
+                  <Download className="h-5 w-5" />
+                </button>
+              )}
               {showNotifications && (
                 <div className="touch-manipulation">
                   <NotificationDropdown />
@@ -91,18 +120,18 @@ export default function PwaLayout({ children }) {
               )}
               <Link
                 href={profileHref}
-                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 touch-manipulation"
+                className="flex min-h-[40px] min-w-[40px] items-center justify-center rounded-lg text-[hsl(var(--app-text-muted))] transition-colors touch-manipulation hover:text-[hsl(var(--app-text))]"
                 aria-label="Profile"
               >
-                <UserCircle className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+                <UserCircle className="h-5 w-5" />
               </Link>
               <button
                 type="button"
                 onClick={() => logout()}
-                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 touch-manipulation"
+                className="flex min-h-[40px] min-w-[40px] items-center justify-center rounded-lg text-[hsl(var(--app-text-muted))] transition-colors touch-manipulation hover:text-[hsl(var(--app-text))]"
                 aria-label="Logout"
               >
-                <LogOut className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+                <LogOut className="h-5 w-5" />
               </button>
             </div>
           </div>

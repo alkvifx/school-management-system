@@ -75,6 +75,14 @@ export const createNotification = asyncHandler(async (req, res) => {
     readBy: [],
   });
 
+  // Real-time: emit to school room so connected users get instant update
+  const io = req.app.get("io");
+  if (io) {
+    io.to(`school-${principal.schoolId}`).emit("notification", {
+      notification: notification.toObject ? notification.toObject() : notification,
+    });
+  }
+
   res.status(201).json({
     success: true,
     message: "Notification created successfully",

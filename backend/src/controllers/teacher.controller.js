@@ -339,8 +339,9 @@ export const markAttendance = asyncHandler(async (req, res) => {
   });
 
   // Notify each student (in-app + push if PWA). Do not block response; do not send twice.
+  const io = req.app.get("io");
   notificationService
-    .createAttendanceNotifications(attendance, req.user._id)
+    .createAttendanceNotifications(attendance, req.user._id, io)
     .catch((err) => console.error("Attendance notifications failed:", err));
 
   logActivity(req.user._id, "TEACHER", teacher.schoolId, "attendance_marked", "attendance", {

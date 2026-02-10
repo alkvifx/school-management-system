@@ -69,8 +69,10 @@ export function useSocket() {
         },
         transports: ['websocket', 'polling'],
         reconnection: true,
+        reconnectionAttempts: Infinity,
         reconnectionDelay: 1000,
-        reconnectionAttempts: 5,
+        reconnectionDelayMax: 30000,
+        randomizationFactor: 0.5,
       });
 
       // Connection event handlers

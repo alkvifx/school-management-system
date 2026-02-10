@@ -402,12 +402,14 @@ export const sendFeeReminder = asyncHandler(async (req, res) => {
   }
 
   try {
+    const io = req.app.get("io");
     const result = await notificationService.sendFeeReminders({
       schoolId: principal.schoolId,
       classId: classId || null,
       studentId: studentId || null,
       onlyDefaulters: onlyDefaulters || false,
       createdBy: principal._id,
+      io,
     });
 
     res.status(200).json({

@@ -2,39 +2,64 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { useAuth } from '@/src/context/auth.context';
 import ProtectedRoute from '@/src/components/ProtectedRoute';
 import { ROLES } from '@/src/utils/constants';
 import { principalService } from '@/src/services/principal.service';
 import {
-  Users,
-  GraduationCap,
-  BookOpen,
-  UserCheck,
-  Calendar,
-  FileText,
   Megaphone,
+  GraduationCap,
+  Users,
+  FileText,
+  TrendingUp,
   MessageCircle,
-  Image as ImageIcon,
-  Bell,
-  AlertTriangle,
-  Search,
-  ChevronRight,
   School,
+  AlertTriangle,
+  Bell,
+  Download,
 } from 'lucide-react';
+import { usePwaInstall } from '@/src/hooks/usePwaInstall';
+import { useIsPWA } from '@/src/hooks/useIsPWA';
+import { cn } from '@/lib/utils';
 
 const PULSE_REFRESH_MS = 3 * 60 * 1000; // 3 min
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.06,
+      delayChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: { opacity: 1, y: 0 },
+};
+
+const QUICK_ACTIONS = [
+  { label: 'Notices', href: '/principal/notices', icon: Megaphone },
+  { label: 'Students', href: '/principal/students', icon: GraduationCap },
+  { label: 'Teachers', href: '/principal/teachers', icon: Users },
+  { label: 'Fees', href: '/principal/fees', icon: FileText },
+  { label: 'Results', href: '/principal/result-analysis', icon: TrendingUp },
+  { label: 'Chat', href: '/principal/ai', icon: MessageCircle },
+];
+
 export default function PrincipalDashboard() {
   const { user } = useAuth();
-
+  const isPWA = useIsPWA();
+  const { isInstallable, promptInstall, isInstalled } = usePwaInstall();
   const [stats, setStats] = useState({
     teachers: 0,
     students: 0,
     classes: 0,
     loading: true,
   });
-
   const [pulse, setPulse] = useState(null);
   const [pulseLoading, setPulseLoading] = useState(true);
   const [pulseError, setPulseError] = useState(null);
@@ -75,7 +100,6 @@ export default function PrincipalDashboard() {
         setPulseLoading(false);
       }
     };
-
     fetchPulse();
     const onFocus = () => fetchPulse();
     window.addEventListener('focus', onFocus);
@@ -86,331 +110,360 @@ export default function PrincipalDashboard() {
     };
   }, []);
 
-  const quickActions = useMemo(
-    () => [
-      {
-        label: 'Add Student',
-        href: '/principal/students',
-        icon: GraduationCap,
-      },
-      {
-        label: 'Create Notice',
-        href: '/principal/notices',
-        icon: Megaphone,
-      },
-      {
-        label: 'View Fees',
-        href: '/principal/fees',
-        icon: FileText,
-      },
-      {
-        label: 'Send Announcement',
-        href: '/principal/notifications',
-        icon: Bell,
-      },
-      {
-        label: 'Mark Attendance',
-        href: '/principal/classes',
-        icon: Calendar,
-      },
-      {
-        label: 'Open Chat',
-        href: '/principal/ai',
-        icon: MessageCircle,
-      },
-    ],
-    []
-  );
-
-  const academicLinks = [
-    { label: 'Classes', href: '/principal/classes', icon: BookOpen },
-    { label: 'Teachers', href: '/principal/teachers', icon: Users },
-    { label: 'Subjects', href: '/principal/subjects', icon: BookOpen },
-    { label: 'Homework', href: '/principal/assign', icon: FileText },
-    { label: 'Results', href: '/principal/result-analysis', icon: TrendingUpIcon },
-  ];
-
-  const adminLinks = [
-    { label: 'Students', href: '/principal/students', icon: GraduationCap },
-    { label: 'Fees', href: '/principal/fees', icon: FileText },
-    { label: 'Admissions', href: '/principal/risks', icon: UserCheck },
-    { label: 'Attendance', href: '/principal/monitoring', icon: Calendar },
-  ];
-
-  const communicationLinks = [
-    { label: 'Announcements', href: '/principal/notifications', icon: Megaphone },
-    { label: 'Notices', href: '/principal/notices', icon: FileText },
-    { label: 'Chat', href: '/principal/ai', icon: MessageCircle },
-  ];
-
-  const mediaLinks = [
-    { label: 'Gallery', href: '/gallery', icon: ImageIcon },
-    { label: 'Events', href: '/principal/school', icon: Calendar },
-    { label: 'Website Media', href: '/principal/website/media', icon: ImageIcon },
-  ];
-
   const pendingTasks = useMemo(() => {
     const items = [];
-
     if (pulse?.teacher?.notMarkedYet > 0) {
       items.push({
         label: `${pulse.teacher.notMarkedYet} teachers have not marked attendance`,
-        href: '/principal/attendance',
+        href: '/principal/classes',
       });
     }
-
     if (pulse?.alerts?.length) {
       items.push({
         label: `${pulse.alerts.length} alerts need attention`,
         href: '/principal/risks',
       });
     }
-
     if (!items.length) {
       items.push({
         label: 'No urgent tasks. You are all caught up.',
         href: '/principal/dashboard',
       });
     }
-
     return items;
   }, [pulse]);
 
-  const recentActions = [
-    { label: 'Viewed attendance pulse', time: 'Today' },
-    { label: 'Checked teacher list', time: 'Today' },
-    { label: 'Sent announcement to parents', time: 'Yesterday' },
-    { label: 'Reviewed fee summary', time: '2 days ago' },
-  ];
-
-  const principalInitial = user?.name?.charAt(0)?.toUpperCase() || 'P';
+  const schoolName = user?.school?.name || 'Your School';
 
   return (
     <ProtectedRoute allowedRoles={[ROLES.PRINCIPAL]}>
-      <div className="min-h-screen bg-gray-50">
-        <div className="mx-auto max-w-6xl px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
-          {/* Top header */}
-          <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white sm:h-11 sm:w-11">
-                <School className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                  Principal Dashboard
-                </p>
-                <h1 className="text-lg font-semibold text-gray-900 sm:text-xl">
-                  {user?.school?.name || 'Your School'}
-                </h1>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Link
-                href="/principal/profile"
-                className="hidden rounded-full border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 sm:inline-flex items-center gap-1.5"
+      <div
+        className="app-bg-texture min-h-screen"
+        style={{ fontFamily: 'var(--principal-body)' }}
+      >
+        <div className="relative z-10 mx-auto max-w-2xl px-4 pb-24 pt-4 sm:pb-6 sm:pt-6">
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="space-y-6"
+          >
+            {/* Compact header: school name + PWA Install (web layout only; PWA uses PwaLayout header) */}
+            {!isPWA && (
+              <motion.header
+                variants={itemVariants}
+                className="flex min-h-[44px] items-center justify-between gap-3"
               >
-                <span>Profile</span>
-              </Link>
-              <Link
-                href="/principal/settings"
-                className="hidden rounded-full border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 sm:inline-flex items-center gap-1.5"
-              >
-                <span>Settings</span>
-              </Link>
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white sm:h-10 sm:w-10">
-                {principalInitial}
-              </div>
-            </div>
-          </header>
-
-          {/* Search + key numbers */}
-          <section className="space-y-3">
-            <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2.5 shadow-sm">
-              <Search className="h-4 w-4 text-gray-400" />
-              <input
-                type="search"
-                placeholder="Search students, teachers, classes, pages..."
-                className="w-full border-none bg-transparent text-sm outline-none placeholder:text-gray-400"
-              />
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 text-center text-xs text-gray-600 sm:text-sm">
-              <div className="rounded-xl bg-white px-3 py-2 shadow-sm">
-                <p className="text-[11px] uppercase tracking-wide text-gray-400">Students</p>
-                <p className="mt-1 text-base font-semibold text-gray-900">
-                  {stats.loading ? '—' : stats.students}
-                </p>
-              </div>
-              <div className="rounded-xl bg-white px-3 py-2 shadow-sm">
-                <p className="text-[11px] uppercase tracking-wide text-gray-400">Teachers</p>
-                <p className="mt-1 text-base font-semibold text-gray-900">
-                  {stats.loading ? '—' : stats.teachers}
-                </p>
-              </div>
-              <div className="rounded-xl bg-white px-3 py-2 shadow-sm">
-                <p className="text-[11px] uppercase tracking-wide text-gray-400">Classes</p>
-                <p className="mt-1 text-base font-semibold text-gray-900">
-                  {stats.loading ? '—' : stats.classes}
-                </p>
-              </div>
-            </div>
-          </section>
-
-          {/* Quick Actions grid */}
-          <section className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-gray-900">Quick actions</h2>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {quickActions.map((action) => {
-                const Icon = action.icon;
-                return (
-                  <Link
-                    key={action.label}
-                    href={action.href}
-                    className="group flex flex-col items-start rounded-2xl bg-white p-3 shadow-sm ring-1 ring-gray-100 transition hover:bg-gray-50 active:scale-[0.98]"
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <div
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--principal-radius-sm)] text-white"
+                    style={{ backgroundColor: 'hsl(var(--principal-accent))' }}
                   >
-                    <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <p className="text-sm font-medium text-gray-900">{action.label}</p>
-                    <span className="mt-0.5 text-[11px] text-gray-500 group-hover:text-gray-600">
-                      Tap to open
+                    <School className="h-5 w-5" />
+                  </div>
+                  <h1
+                    className="truncate text-lg font-semibold"
+                    style={{
+                      color: 'hsl(var(--principal-text))',
+                      fontFamily: 'var(--principal-display)',
+                    }}
+                  >
+                    {schoolName}
+                  </h1>
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  {isInstallable && !isInstalled && (
+                    <button
+                      type="button"
+                      onClick={() => promptInstall()}
+                      className="flex min-h-[44px] min-w-[44px] items-center justify-center gap-2 rounded-[var(--principal-radius-sm)] px-3 transition-colors active:scale-[0.97]"
+                      style={{
+                        backgroundColor: 'hsl(var(--principal-accent-muted))',
+                        color: 'hsl(var(--principal-accent))',
+                      }}
+                      aria-label="Install app"
+                    >
+                      <Download className="h-5 w-5" />
+                      <span className="hidden text-sm font-medium sm:inline">Install</span>
+                    </button>
+                  )}
+                  <Link
+                    href="/principal/profile"
+                    className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-[var(--principal-radius-sm)] transition-colors active:scale-[0.97]"
+                    style={{
+                      backgroundColor: 'hsl(var(--principal-surface))',
+                      color: 'hsl(var(--principal-text-muted))',
+                      boxShadow: 'var(--principal-shadow)',
+                    }}
+                    aria-label="Profile"
+                  >
+                    <span
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold text-white"
+                      style={{ backgroundColor: 'hsl(var(--principal-accent))' }}
+                    >
+                      {user?.name?.charAt(0)?.toUpperCase() || 'P'}
                     </span>
                   </Link>
-                );
-              })}
-            </div>
-          </section>
+                </div>
+              </motion.header>
+            )}
 
-          {/* Sections: Academics / Administration / Communication / Media */}
-          <section className="space-y-4">
-            <DashboardSection title="Academics" links={academicLinks} />
-            <DashboardSection title="Administration" links={adminLinks} />
-            <DashboardSection title="Communication" links={communicationLinks} />
-            <DashboardSection title="Media" links={mediaLinks} />
-          </section>
+            {/* Stats row */}
+            <motion.section variants={itemVariants} className="grid grid-cols-3 gap-3">
+              {[
+                { label: 'Students', value: stats.students, loading: stats.loading },
+                { label: 'Teachers', value: stats.teachers, loading: stats.loading },
+                { label: 'Classes', value: stats.classes, loading: stats.loading },
+              ].map((stat) => (
+                <div
+                  key={stat.label}
+                  className="rounded-[var(--principal-radius)] px-3 py-3 text-center"
+                  style={{
+                    backgroundColor: 'hsl(var(--principal-surface))',
+                    boxShadow: 'var(--principal-shadow)',
+                  }}
+                >
+                  <p
+                    className="text-[11px] font-medium uppercase tracking-wider"
+                    style={{ color: 'hsl(var(--principal-text-muted))' }}
+                  >
+                    {stat.label}
+                  </p>
+                  <p
+                    className="mt-0.5 text-xl font-semibold"
+                    style={{
+                      color: 'hsl(var(--principal-text))',
+                      fontFamily: 'var(--principal-display)',
+                    }}
+                  >
+                    {stat.loading ? '—' : stat.value}
+                  </p>
+                </div>
+              ))}
+            </motion.section>
 
-          {/* Pulse + pending + recent */}
-          <section className="grid gap-4 sm:grid-cols-2">
-            {/* Pending tasks */}
-            <div className="space-y-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-gray-900">Pending tasks</h2>
+            {/* Quick Actions grid */}
+            <motion.section variants={itemVariants}>
+              <h2
+                className="mb-3 text-sm font-semibold"
+                style={{
+                  color: 'hsl(var(--principal-text))',
+                  fontFamily: 'var(--principal-display)',
+                }}
+              >
+                Quick Actions
+              </h2>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {QUICK_ACTIONS.map((action, i) => {
+                  const Icon = action.icon;
+                  return (
+                    <motion.div
+                      key={action.label}
+                      variants={itemVariants}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <Link
+                        href={action.href}
+                        className={cn(
+                          'group flex min-h-[88px] flex-col items-start justify-between rounded-[var(--principal-radius-lg)] p-4 transition-all',
+                          'active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'
+                        )}
+                        style={{
+                          backgroundColor: 'hsl(var(--principal-surface))',
+                          boxShadow: 'var(--principal-shadow)',
+                          ['--tw-ring-color']: 'hsl(var(--principal-accent))',
+                        }}
+                      >
+                        <div
+                          className="flex h-10 w-10 items-center justify-center rounded-[var(--principal-radius-sm)]"
+                          style={{ backgroundColor: 'hsl(var(--principal-accent-muted))' }}
+                        >
+                          <Icon
+                            className="h-5 w-5"
+                            style={{ color: 'hsl(var(--principal-accent))' }}
+                          />
+                        </div>
+                        <span
+                          className="text-sm font-medium"
+                          style={{ color: 'hsl(var(--principal-text))' }}
+                        >
+                          {action.label}
+                        </span>
+                      </Link>
+                    </motion.div>
+                  );
+                })}
               </div>
-              <ul className="space-y-2 text-sm">
+            </motion.section>
+
+            {/* Today's Pulse */}
+            <motion.section
+              variants={itemVariants}
+              className="rounded-[var(--principal-radius-lg)] p-4"
+              style={{
+                backgroundColor: 'hsl(var(--principal-surface))',
+                boxShadow: 'var(--principal-shadow)',
+              }}
+            >
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Bell
+                    className="h-4 w-4"
+                    style={{ color: 'hsl(var(--principal-accent))' }}
+                  />
+                  <h2
+                    className="text-sm font-semibold"
+                    style={{
+                      color: 'hsl(var(--principal-text))',
+                      fontFamily: 'var(--principal-display)',
+                    }}
+                  >
+                    Today&apos;s pulse
+                  </h2>
+                </div>
+                {pulse && (
+                  <span
+                    className="text-xs"
+                    style={{ color: 'hsl(var(--principal-text-muted))' }}
+                  >
+                    {pulse.dayName}, {pulse.date}
+                  </span>
+                )}
+              </div>
+              {pulseLoading ? (
+                <p
+                  className="text-xs"
+                  style={{ color: 'hsl(var(--principal-text-muted))' }}
+                >
+                  Loading today&apos;s data…
+                </p>
+              ) : pulseError ? (
+                <p className="text-xs text-red-600">{pulseError}</p>
+              ) : !pulse ? (
+                <p
+                  className="text-xs"
+                  style={{ color: 'hsl(var(--principal-text-muted))' }}
+                >
+                  No data for today yet.
+                </p>
+              ) : (
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div
+                    className="rounded-[var(--principal-radius-sm)] px-3 py-2"
+                    style={{ backgroundColor: 'hsl(var(--principal-accent-muted))' }}
+                  >
+                    <p
+                      className="text-[10px] uppercase tracking-wider"
+                      style={{ color: 'hsl(var(--principal-text-muted))' }}
+                    >
+                      Student attendance
+                    </p>
+                    <p
+                      className="mt-0.5 font-semibold"
+                      style={{
+                        color: 'hsl(var(--principal-text))',
+                        fontFamily: 'var(--principal-display)',
+                      }}
+                    >
+                      {pulse.student?.attendancePercentage ?? 0}%
+                    </p>
+                  </div>
+                  <div
+                    className="rounded-[var(--principal-radius-sm)] px-3 py-2"
+                    style={{ backgroundColor: 'hsl(var(--principal-sage-muted))' }}
+                  >
+                    <p
+                      className="text-[10px] uppercase tracking-wider"
+                      style={{ color: 'hsl(var(--principal-text-muted))' }}
+                    >
+                      Teacher marked
+                    </p>
+                    <p
+                      className="mt-0.5 font-semibold"
+                      style={{
+                        color: 'hsl(var(--principal-text))',
+                        fontFamily: 'var(--principal-display)',
+                      }}
+                    >
+                      {pulse.teacher?.presentToday ?? 0}/{pulse.teacher?.totalTeachers ?? 0}
+                    </p>
+                  </div>
+                  <div
+                    className="rounded-[var(--principal-radius-sm)] px-3 py-2"
+                    style={{ backgroundColor: 'hsl(var(--principal-accent-muted))' }}
+                  >
+                    <p
+                      className="text-[10px] uppercase tracking-wider"
+                      style={{ color: 'hsl(var(--principal-text-muted))' }}
+                    >
+                      Alerts
+                    </p>
+                    <p
+                      className="mt-0.5 font-semibold"
+                      style={{
+                        color: 'hsl(var(--principal-text))',
+                        fontFamily: 'var(--principal-display)',
+                      }}
+                    >
+                      {pulse.alerts?.length ?? 0}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </motion.section>
+
+            {/* Pending tasks */}
+            <motion.section
+              variants={itemVariants}
+              className="rounded-[var(--principal-radius-lg)] p-4"
+              style={{
+                backgroundColor: 'hsl(var(--principal-surface))',
+                boxShadow: 'var(--principal-shadow)',
+              }}
+            >
+              <h2
+                className="mb-3 text-sm font-semibold"
+                style={{
+                  color: 'hsl(var(--principal-text))',
+                  fontFamily: 'var(--principal-display)',
+                }}
+              >
+                Pending tasks
+              </h2>
+              <ul className="space-y-1">
                 {pendingTasks.map((task) => (
                   <li key={task.label}>
                     <Link
                       href={task.href}
-                      className="flex items-start gap-2 rounded-lg px-2 py-1.5 hover:bg-gray-50"
+                      className="flex items-start gap-2 rounded-[var(--principal-radius-sm)] px-2 py-2 transition-colors active:bg-opacity-80"
+                      style={{
+                        backgroundColor: task.label.startsWith('No urgent')
+                          ? 'transparent'
+                          : 'hsl(var(--principal-accent-muted))',
+                      }}
                     >
-                      <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-500" />
-                      <span className="text-gray-700">{task.label}</span>
+                      <AlertTriangle
+                        className="mt-0.5 h-4 w-4 shrink-0"
+                        style={{
+                          color: task.label.startsWith('No urgent')
+                            ? 'hsl(var(--principal-sage))'
+                            : 'hsl(var(--principal-accent))',
+                        }}
+                      />
+                      <span
+                        className="text-sm"
+                        style={{ color: 'hsl(var(--principal-text))' }}
+                      >
+                        {task.label}
+                      </span>
                     </Link>
                   </li>
                 ))}
               </ul>
-            </div>
-
-            {/* Recent actions */}
-            <div className="space-y-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-gray-900">Recent actions</h2>
-              </div>
-              <ul className="space-y-2 text-sm">
-                {recentActions.map((item) => (
-                  <li
-                    key={item.label}
-                    className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-gray-50"
-                  >
-                    <span className="text-gray-700">{item.label}</span>
-                    <span className="text-[11px] text-gray-400">{item.time}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </section>
-
-          {/* Compact pulse summary (below the fold, no heavy visuals) */}
-          <section className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Bell className="h-4 w-4 text-blue-600" />
-                <h2 className="text-sm font-semibold text-gray-900">Today&apos;s pulse</h2>
-              </div>
-              {pulse && (
-                <span className="text-xs text-gray-500">
-                  {pulse.dayName}, {pulse.date}
-                </span>
-              )}
-            </div>
-
-            {pulseLoading ? (
-              <p className="text-xs text-gray-500">Loading today&apos;s data…</p>
-            ) : pulseError ? (
-              <p className="text-xs text-red-500">{pulseError}</p>
-            ) : !pulse ? (
-              <p className="text-xs text-gray-500">No data for today yet.</p>
-            ) : (
-              <div className="grid gap-3 text-xs text-gray-700 sm:grid-cols-3">
-                <div className="rounded-xl bg-gray-50 px-3 py-2">
-                  <p className="text-[11px] uppercase tracking-wide text-gray-400">Student attendance</p>
-                  <p className="mt-1 text-base font-semibold text-gray-900">
-                    {pulse.student?.attendancePercentage ?? 0}%
-                  </p>
-                </div>
-                <div className="rounded-xl bg-gray-50 px-3 py-2">
-                  <p className="text-[11px] uppercase tracking-wide text-gray-400">Teacher marked</p>
-                  <p className="mt-1 text-base font-semibold text-gray-900">
-                    {pulse.teacher?.presentToday ?? 0}/{pulse.teacher?.totalTeachers ?? 0}
-                  </p>
-                </div>
-                <div className="rounded-xl bg-gray-50 px-3 py-2">
-                  <p className="text-[11px] uppercase tracking-wide text-gray-400">Alerts</p>
-                  <p className="mt-1 text-base font-semibold text-gray-900">
-                    {pulse.alerts?.length ?? 0}
-                  </p>
-                </div>
-              </div>
-            )}
-          </section>
+            </motion.section>
+          </motion.div>
         </div>
       </div>
     </ProtectedRoute>
   );
-}
-
-function DashboardSection({ title, links }) {
-  return (
-    <div className="space-y-2 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
-      </div>
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {links.map((item) => {
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.label}
-              href={item.href}
-              className="flex min-w-[120px] flex-col items-start rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 text-xs text-gray-700 hover:bg-gray-100"
-            >
-              <div className="mb-2 flex h-7 w-7 items-center justify-center rounded-lg bg-white text-blue-600">
-                <Icon className="h-4 w-4" />
-              </div>
-              <span className="font-medium">{item.label}</span>
-              <ChevronRight className="mt-1 h-3 w-3 text-gray-400" />
-            </Link>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function TrendingUpIcon(props) {
-  return <ChevronRight {...props} />;
 }

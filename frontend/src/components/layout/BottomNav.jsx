@@ -21,24 +21,29 @@ import {
   Image,
   UserCheck,
   EyeOff,
+  MoreHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
- * Role-based bottom nav for PWA – full feature parity with web Sidebar.
- * Primary: up to 4 items; rest in "More" so every feature is reachable.
+ * Role-based bottom nav for PWA.
+ * Principal: clean 4-item nav (Dashboard, Students, Fees, More) – minimal, thumb-friendly.
  */
 const BOTTOM_NAV_BY_ROLE = {
   [ROLES.PRINCIPAL]: {
     primary: [
-      { href: '/principal/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { href: '/principal/dashboard', label: 'Home', icon: LayoutDashboard },
       { href: '/principal/students', label: 'Students', icon: Users },
-      { href: '/principal/classes', label: 'Classes', icon: ClipboardList },
       { href: '/principal/fees', label: 'Fees', icon: CreditCard },
+      { href: '#more', label: 'More', icon: MoreHorizontal, isMore: true },
     ],
     secondary: [
-      { href: '/principal/school', label: 'School', icon: Building2 },
       { href: '/principal/teachers', label: 'Teachers', icon: Users },
+      { href: '/principal/classes', label: 'Classes', icon: ClipboardList },
+      { href: '/principal/notices', label: 'Notices', icon: FileText },
+      { href: '/principal/result-analysis', label: 'Results', icon: Award },
+      { href: '/principal/ai', label: 'Chat', icon: MessageCircle },
+      { href: '/principal/school', label: 'School', icon: Building2 },
       { href: '/principal/assign', label: 'Assignments', icon: UserCheck },
       { href: '/principal/website/pages', label: 'Website', icon: FileText },
       { href: '/principal/website/media', label: 'Media', icon: Image },
@@ -99,37 +104,21 @@ export default function BottomNav() {
   const config = BOTTOM_NAV_BY_ROLE[user.role];
   if (!config?.primary?.length) return null;
 
-  const primary = config.primary.slice(0, 4);
+  const displayItems = config.primary;
   const secondary = config.secondary || [];
-
-  const hasMore = secondary.length > 0 && primary.length >= 3;
-  const basePrimary = hasMore ? primary.slice(0, 3) : primary;
-
-  const displayItems = hasMore
-    ? [
-        ...basePrimary,
-        {
-          href: '#more',
-          label: 'More',
-          icon: BookOpen,
-          isMore: true,
-        },
-      ]
-    : basePrimary;
-
+  const hasMore = secondary.length > 0 && displayItems.some((i) => i.isMore);
   return (
     <nav
       className={cn(
         'fixed bottom-0 left-0 right-0 z-40',
-        'bg-white/95 dark:bg-slate-900/95 backdrop-blur-md',
-        'border-t border-slate-200 dark:border-slate-800',
-        'safe-area-inset-bottom pb-[env(safe-area-inset-bottom)]',
-        'shadow-[0_-2px_4px_rgba(15,23,42,0.06)]'
+        'backdrop-blur-md',
+        'border-t border-[hsl(var(--app-border))] safe-area-inset-bottom pb-[env(safe-area-inset-bottom)]',
+        'bg-[hsl(var(--app-surface))]/95 shadow-[0_-2px_8px_hsl(220_20%_85%/0.3)]'
       )}
       role="navigation"
       aria-label="Bottom navigation"
     >
-      <div className="relative mx-auto flex h-16 max-w-lg items-center justify-around px-1">
+      <div className="relative mx-auto flex h-[72px] max-w-lg items-center justify-around gap-1 px-2">
         {displayItems.map((item) => {
           const Icon = item.icon;
           const isActive =
@@ -147,30 +136,27 @@ export default function BottomNav() {
                 type="button"
                 onClick={() => setMoreOpen((v) => !v)}
                 className={cn(
-                  'flex flex-1 min-w-0 flex-col items-center justify-center px-1 py-1.5',
-                  'text-[11px] font-medium transition-colors',
-                  'touch-manipulation active:scale-95',
+                  'flex min-h-[52px] min-w-[52px] flex-1 flex-col items-center justify-center gap-1 rounded-xl',
+                  'text-[12px] font-medium transition-all touch-manipulation active:scale-95',
                   anySecondaryActive
-                    ? 'text-blue-600 dark:text-blue-400'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                    ? 'text-[hsl(var(--app-accent))]'
+                    : 'text-[hsl(var(--app-text-muted))]'
                 )}
                 aria-haspopup="menu"
                 aria-expanded={moreOpen}
               >
                 <Icon
-                  className={cn(
-                    'mb-0.5 h-6 w-6 flex-shrink-0',
-                    anySecondaryActive && 'stroke-[2.5]'
-                  )}
+                className={cn(
+                  'h-6 w-6 flex-shrink-0',
+                  anySecondaryActive && 'stroke-[2.5]'
+                )}
                   aria-hidden
                 />
-                <span className="w-full truncate text-center max-[360px]:hidden">
-                  More
-                </span>
+                <span className="max-[360px]:hidden">{item.label}</span>
                 <span
                   className={cn(
-                    'mt-0.5 h-0.5 w-5 rounded-full',
-                    anySecondaryActive ? 'bg-blue-600' : 'bg-transparent'
+                    'h-0.5 w-6 rounded-full',
+                    anySecondaryActive ? 'bg-[hsl(var(--app-accent))]' : 'bg-transparent'
                   )}
                 />
               </button>
@@ -182,29 +168,26 @@ export default function BottomNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex flex-1 min-w-0 flex-col items-center justify-center px-1 py-1.5',
-                'text-[11px] font-medium transition-colors',
-                'touch-manipulation active:scale-95',
+                'flex min-h-[52px] min-w-[52px] flex-1 flex-col items-center justify-center gap-1 rounded-xl',
+                'text-[12px] font-medium transition-all touch-manipulation active:scale-95',
                 isActive
-                  ? 'text-blue-600 dark:text-blue-400'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  ? 'text-[hsl(var(--app-accent))]'
+                  : 'text-[hsl(var(--app-text-muted))]'
               )}
               aria-current={isActive ? 'page' : undefined}
             >
               <Icon
                 className={cn(
-                  'mb-0.5 h-6 w-6 flex-shrink-0',
+                  'h-6 w-6 flex-shrink-0',
                   isActive && 'stroke-[2.5]'
                 )}
                 aria-hidden
               />
-              <span className="w-full truncate text-center max-[360px]:hidden">
-                {item.label}
-              </span>
+              <span className="max-[360px]:hidden">{item.label}</span>
               <span
                 className={cn(
-                  'mt-0.5 h-0.5 w-5 rounded-full',
-                  isActive ? 'bg-blue-600' : 'bg-transparent'
+                  'h-0.5 w-6 rounded-full',
+                  isActive ? 'bg-[hsl(var(--app-accent))]' : 'bg-transparent'
                 )}
               />
             </Link>
@@ -212,8 +195,8 @@ export default function BottomNav() {
         })}
 
         {hasMore && moreOpen && secondary.length > 0 && (
-          <div className="absolute bottom-16 left-1/2 z-40 w-full max-w-xs -translate-x-1/2 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
-            <div className="flex flex-col gap-1 text-sm text-slate-800">
+          <div className="absolute bottom-full left-1/2 z-40 mb-2 w-full max-w-xs -translate-x-1/2 rounded-[var(--app-radius-lg)] border border-[hsl(var(--app-border))] bg-[hsl(var(--app-surface))] p-2 shadow-[var(--app-shadow-lg)]">
+            <div className="flex flex-col gap-1 text-sm text-[hsl(var(--app-text))]">
               {secondary.map((item) => {
                 const Icon = item.icon;
                 const active =
@@ -225,14 +208,18 @@ export default function BottomNav() {
                     href={item.href}
                     onClick={() => setMoreOpen(false)}
                     className={cn(
-                      'flex items-center gap-2 rounded-xl px-2 py-2',
-                      active ? 'bg-slate-100' : 'hover:bg-slate-50'
+                      'flex min-h-[44px] items-center gap-3 rounded-xl px-3 py-2',
+                      active
+                        ? 'bg-[hsl(var(--app-accent-muted))]'
+                        : 'hover:bg-[hsl(var(--app-bg))]'
                     )}
                   >
-                    <Icon className="h-4 w-4 text-slate-500" />
+                    <Icon
+                      className="h-4 w-4 shrink-0 text-[hsl(var(--app-accent))]"
+                    />
                     <span className="flex-1 text-left text-[13px]">{item.label}</span>
                     {active && (
-                      <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[hsl(var(--app-accent))]" />
                     )}
                   </Link>
                 );

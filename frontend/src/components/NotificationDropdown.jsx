@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Bell, Check, CheckCheck } from 'lucide-react';
+import { useSocket } from '@/src/hooks/useSocket';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -17,6 +18,7 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 
 export function NotificationDropdown() {
+  const { socket } = useSocket();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -44,6 +46,23 @@ export function NotificationDropdown() {
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
   }, []);
+
+  // Real-time: listen for notification events from Socket.IO
+  useEffect(() => {
+    if (!socket) return;
+    const onNotification = (payload) => {
+      fetchNotifications();
+      if (payload?.notification?.title) {
+        toast.info(payload.notification.title, {
+          description: payload.notification.message,
+        });
+      }
+    };
+    socket.on('notification', onNotification);
+    return () => {
+      socket.off('notification', onNotification);
+    };
+  }, [socket]);
 
   const handleMarkAsRead = async (notificationId) => {
     try {

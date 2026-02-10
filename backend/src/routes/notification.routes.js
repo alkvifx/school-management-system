@@ -13,7 +13,10 @@ import { validateSchoolAccess } from "../middlewares/school.middleware.js";
 
 const router = express.Router();
 
-// All routes (except VAPID key) require authentication and school access
+// Public: VAPID key for PWA push setup (no auth required)
+router.get("/vapid-key", getVapidKey);
+
+// Protected routes
 router.use(protect);
 router.use(validateSchoolAccess);
 
@@ -44,11 +47,6 @@ router.put(
   allowRoles("TEACHER", "STUDENT"),
   markAllNotificationsAsRead
 );
-
-// @route   GET /api/notifications/vapid-key
-// @desc    Get VAPID public key for push notifications
-// @access  Public (for PWA setup)
-router.get("/vapid-key", getVapidKey);
 
 // @route   POST /api/notifications/subscribe
 // @desc    Subscribe to push notifications

@@ -156,7 +156,7 @@ export default function TeacherDashboard() {
 
   return (
     <ProtectedRoute allowedRoles={[ROLES.TEACHER]}>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30">
+      <div className="app-bg-texture min-h-screen">
         <motion.div
           initial="hidden"
           animate="visible"
@@ -165,7 +165,10 @@ export default function TeacherDashboard() {
         >
           {/* Header */}
           <motion.div variants={itemVariants} className="mb-8">
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 p-6 lg:p-8 text-white shadow-xl">
+            <div
+              className="relative overflow-hidden rounded-[var(--app-radius-lg)] p-6 lg:p-8 text-white shadow-[var(--app-shadow-lg)]"
+              style={{ backgroundColor: 'hsl(var(--app-accent))' }}
+            >
               <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
                 <div>
                   <div className="flex items-center gap-3 mb-2">
@@ -180,7 +183,7 @@ export default function TeacherDashboard() {
                   <h1 className="text-3xl lg:text-4xl font-bold mb-1">
                     {greeting}, {teacherName}
                   </h1>
-                  <p className="text-blue-100 text-base lg:text-lg">
+                  <p className="text-white/90 text-base lg:text-lg">
                     Here’s your overview for today.
                   </p>
                   <div className="flex flex-wrap items-center gap-4 mt-4">
@@ -286,7 +289,7 @@ export default function TeacherDashboard() {
                       <Link
                         key={action.href}
                         href={action.href}
-                        className="group block p-5 rounded-2xl border border-gray-200 hover:border-transparent hover:shadow-lg bg-white transition-all duration-300"
+                        className="group block p-5 rounded-[var(--app-radius-lg)] border border-[hsl(var(--app-border))] hover:shadow-[var(--app-shadow-lg)] bg-[hsl(var(--app-surface))] transition-all duration-300"
                       >
                         <div className="flex items-start gap-4">
                           <div className={`p-3 rounded-xl ${action.bgColor}`}>
@@ -297,7 +300,7 @@ export default function TeacherDashboard() {
                           <div className="flex-1 min-w-0">
                             <h3 className="font-bold text-gray-900 mb-1">{action.title}</h3>
                             <p className="text-sm text-gray-600 line-clamp-2">{action.description}</p>
-                            <span className="inline-flex items-center gap-1 mt-2 text-sm font-medium text-blue-600 group-hover:text-blue-700">
+                            <span className="inline-flex items-center gap-1 mt-2 text-sm font-medium text-[hsl(var(--app-accent))]">
                               Open <ArrowRight size={14} />
                             </span>
                           </div>
@@ -383,7 +386,10 @@ export default function TeacherDashboard() {
 
           {/* Inspiration strip */}
           <motion.div variants={itemVariants} className="mt-8">
-            <div className="rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 p-6 text-white">
+            <div
+              className="rounded-[var(--app-radius-lg)] p-6 text-white"
+              style={{ backgroundColor: 'hsl(var(--app-accent))' }}
+            >
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div className="bg-white/20 p-3 rounded-xl">
@@ -391,7 +397,7 @@ export default function TeacherDashboard() {
                   </div>
                   <div>
                     <h3 className="text-lg font-bold">"The art of teaching is the art of assisting discovery."</h3>
-                    <p className="text-blue-100 text-sm mt-1">— Mark Van Doren</p>
+                    <p className="text-white/90 text-sm mt-1">— Mark Van Doren</p>
                   </div>
                 </div>
                 <div className="flex-shrink-0">
@@ -403,7 +409,7 @@ export default function TeacherDashboard() {
             </div>
           </motion.div>
 
-          <motion.div variants={itemVariants} className="mt-8 pt-6 border-t border-gray-200 flex flex-wrap items-center justify-between gap-2 text-sm text-gray-500">
+          <motion.div variants={itemVariants} className="mt-8 pt-6 border-t border-[hsl(var(--app-border))] flex flex-wrap items-center justify-between gap-2 text-sm text-[hsl(var(--app-text-muted))]">
             <span className="flex items-center gap-2">
               <Shield className="h-4 w-4" />
               Secure Teacher Portal

@@ -6,9 +6,13 @@ import PwaLayout from '@/src/components/layout/PwaLayout';
 
 export default function PrincipalLayout({ children }) {
   const isPWA = useIsPWA();
-  return isPWA ? (
-    <PwaLayout>{children}</PwaLayout>
-  ) : (
-    <DashboardLayout>{children}</DashboardLayout>
+  return (
+    <div data-theme="principal" className="principal-theme">
+      {isPWA ? (
+        <PwaLayout>{children}</PwaLayout>
+      ) : (
+        <DashboardLayout>{children}</DashboardLayout>
+      )}
+    </div>
   );
 }

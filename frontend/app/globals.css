@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -14,12 +16,75 @@ html {
 
 body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
-        "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
-        "Helvetica Neue", sans-serif;
+    font-family: 'DM Sans', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GLOBAL DESIGN SYSTEM — Soft Academic Campus
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+    --app-display: 'Crimson Pro', Georgia, serif;
+    --app-body: 'DM Sans', system-ui, sans-serif;
+    --app-bg: 42 25% 97%;
+    --app-bg-paper: 45 30% 99%;
+    --app-surface: 0 0% 100%;
+    --app-text: 220 25% 18%;
+    --app-text-muted: 220 12% 45%;
+    --app-accent: 24 70% 45%;
+    --app-accent-muted: 24 40% 92%;
+    --app-sage: 155 25% 35%;
+    --app-sage-muted: 155 20% 93%;
+    --app-border: 40 15% 90%;
+    --app-shadow: 0 1px 3px hsl(220 20% 85% / 0.4);
+    --app-shadow-lg: 0 4px 12px hsl(220 20% 75% / 0.25);
+    --app-radius: 0.75rem;
+    --app-radius-sm: 0.5rem;
+    --app-radius-lg: 1rem;
+}
+
+/* Backward compatibility: principal theme maps to app tokens */
+[data-theme="principal"] {
+    --principal-display: var(--app-display);
+    --principal-body: var(--app-body);
+    --principal-bg: var(--app-bg);
+    --principal-bg-paper: var(--app-bg-paper);
+    --principal-surface: var(--app-surface);
+    --principal-text: var(--app-text);
+    --principal-text-muted: var(--app-text-muted);
+    --principal-accent: var(--app-accent);
+    --principal-accent-muted: var(--app-accent-muted);
+    --principal-sage: var(--app-sage);
+    --principal-sage-muted: var(--app-sage-muted);
+    --principal-border: var(--app-border);
+    --principal-shadow: var(--app-shadow);
+    --principal-shadow-lg: var(--app-shadow-lg);
+    --principal-radius: var(--app-radius);
+    --principal-radius-sm: var(--app-radius-sm);
+    --principal-radius-lg: var(--app-radius-lg);
+}
+
+/* Paper-like background with noise texture — use on page wrappers */
+.app-bg-texture,
+.principal-bg-texture {
+    position: relative;
+    background: linear-gradient(
+        165deg,
+        hsl(var(--app-bg)) 0%,
+        hsl(45 22% 95%) 50%,
+        hsl(40 28% 96%) 100%
+    );
+}
+.app-bg-texture::before,
+.principal-bg-texture::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.4;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
 }
 
 /* Custom Scrollbar */
@@ -67,25 +132,25 @@ html.pwa-active body {
 
 @layer base {
   :root {
-        --background: 0 0% 100%;
-        --foreground: 222.2 84% 4.9%;
-        --card: 0 0% 100%;
-        --card-foreground: 222.2 84% 4.9%;
-        --popover: 0 0% 100%;
-        --popover-foreground: 222.2 84% 4.9%;
-        --primary: 222.2 47.4% 11.2%;
-        --primary-foreground: 210 40% 98%;
-        --secondary: 210 40% 96.1%;
-        --secondary-foreground: 222.2 47.4% 11.2%;
-        --muted: 210 40% 96.1%;
-        --muted-foreground: 215.4 16.3% 46.9%;
-        --accent: 210 40% 96.1%;
-        --accent-foreground: 222.2 47.4% 11.2%;
-        --destructive: 0 84.2% 60.2%;
-        --destructive-foreground: 210 40% 98%;
-        --border: 214.3 31.8% 91.4%;
-        --input: 214.3 31.8% 91.4%;
-        --ring: 222.2 84% 4.9%;
+        --background: var(--app-bg);
+        --foreground: var(--app-text);
+        --card: var(--app-surface);
+        --card-foreground: var(--app-text);
+        --popover: var(--app-surface);
+        --popover-foreground: var(--app-text);
+        --primary: var(--app-accent);
+        --primary-foreground: 0 0% 100%;
+        --secondary: var(--app-accent-muted);
+        --secondary-foreground: var(--app-accent);
+        --muted: var(--app-accent-muted);
+        --muted-foreground: var(--app-text-muted);
+        --accent: var(--app-accent-muted);
+        --accent-foreground: var(--app-accent);
+        --destructive: 0 65% 50%;
+        --destructive-foreground: 0 0% 100%;
+        --border: var(--app-border);
+        --input: var(--app-border);
+        --ring: var(--app-accent);
         --chart-1: 12 76% 61%;
         --chart-2: 173 58% 39%;
         --chart-3: 197 37% 24%;

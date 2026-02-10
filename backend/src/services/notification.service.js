@@ -127,7 +127,7 @@ export const createNotification = async (data) => {
  * @param {object} attendance - Saved Attendance doc with records: [{ studentId, status }], schoolId, date
  * @param {string} createdByUserId - Teacher's User _id (for createdBy)
  */
-export const createAttendanceNotifications = async (attendance, createdByUserId) => {
+export const createAttendanceNotifications = async (attendance, createdByUserId, io = null) => {
   if (!attendance || !attendance.records || !attendance.records.length) {
     return [];
   }
@@ -164,7 +164,12 @@ export const createAttendanceNotifications = async (attendance, createdByUserId)
 
       notifications.push(notification);
 
-      // Send push notification if subscriptions exist (PWA)
+      // Real-time: emit to user's socket room
+      if (io) {
+        io.to(`user-${userId}`).emit("notification", { notification });
+      }
+
+      // Push notification if subscriptions exist (PWA)
       await sendPushToUser(userId.toString(), {
         title: isPresent ? "Present today ✅" : "Absent today ❌",
         body: message,
@@ -186,7 +191,7 @@ export const createAttendanceNotifications = async (attendance, createdByUserId)
 /**
  * Create fee reminder notification for a student
  */
-export const createFeeReminderNotification = async (studentFee, createdBy) => {
+export const createFeeReminderNotification = async (studentFee, createdBy, io = null) => {
   const student = await Student.findById(studentFee.studentId).populate("userId");
   if (!student || !student.userId) {
     throw new Error("Student not found");
@@ -217,6 +222,11 @@ export const createFeeReminderNotification = async (studentFee, createdBy) => {
     isRead: false,
   });
 
+  // Real-time: emit to user's socket room
+  if (io) {
+    io.to(`user-${student.userId._id}`).emit("notification", { notification });
+  }
+
   // Send push notification if subscriptions exist
   await sendPushToUser(student.userId._id.toString(), {
     title,
@@ -236,7 +246,7 @@ export const createFeeReminderNotification = async (studentFee, createdBy) => {
  * Send fee reminders to multiple students
  */
 export const sendFeeReminders = async (options) => {
-  const { schoolId, classId, studentId, onlyDefaulters, createdBy } = options;
+  const { schoolId, classId, studentId, onlyDefaulters, createdBy, io = null } = options;
 
   let studentFees = [];
 
@@ -281,7 +291,7 @@ export const sendFeeReminders = async (options) => {
 
   for (const studentFee of studentFees) {
     try {
-      const notification = await createFeeReminderNotification(studentFee, createdBy);
+      const notification = await createFeeReminderNotification(studentFee, createdBy, io);
       notifications.push(notification);
     } catch (error) {
       errors.push({

@@ -262,7 +262,7 @@ export default function StudentDashboard() {
 
   return (
     <ProtectedRoute allowedRoles={[ROLES.STUDENT]}>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30">
+      <div className="app-bg-texture min-h-screen">
         <motion.div
           initial="hidden"
           animate="visible"
@@ -271,7 +271,10 @@ export default function StudentDashboard() {
         >
           {/* Hero Header */}
           <motion.div variants={itemVariants} className="mb-8 lg:mb-12">
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 p-6 lg:p-8 text-white shadow-2xl">
+            <div
+              className="relative overflow-hidden rounded-[var(--app-radius-lg)] p-6 lg:p-8 text-white shadow-[var(--app-shadow-lg)]"
+              style={{ backgroundColor: 'hsl(var(--app-accent))' }}
+            >
               <div className="relative z-10">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
                   <div className="max-w-2xl">
@@ -292,44 +295,44 @@ export default function StudentDashboard() {
                       </span>
                     </h1>
 
-                    <p className="text-blue-100 text-lg lg:text-xl">
+                    <p className="text-white/90 text-lg lg:text-xl">
                       Ready to conquer today's learning journey?
                     </p>
 
                     {/* Stats Overview */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-                      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+                      <div className="bg-white/10 backdrop-blur-sm rounded-[var(--app-radius)] p-4">
                         <div className="flex items-center gap-3">
                           <Target className="h-5 w-5" />
                           <div>
-                            <p className="text-sm text-blue-200">Overall Score</p>
+                            <p className="text-sm text-white/80">Overall Score</p>
                             <p className="text-2xl font-bold">{stats.overallScore}%</p>
                           </div>
                         </div>
                       </div>
-                      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+                      <div className="bg-white/10 backdrop-blur-sm rounded-[var(--app-radius)] p-4">
                         <div className="flex items-center gap-3">
                           <CheckCircle2 className="h-5 w-5" />
                           <div>
-                            <p className="text-sm text-blue-200">Attendance</p>
+                            <p className="text-sm text-white/80">Attendance</p>
                             <p className="text-2xl font-bold">{stats.attendance}%</p>
                           </div>
                         </div>
                       </div>
-                      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+                      <div className="bg-white/10 backdrop-blur-sm rounded-[var(--app-radius)] p-4">
                         <div className="flex items-center gap-3">
                           <Flame className="h-5 w-5" />
                           <div>
-                            <p className="text-sm text-blue-200">Streak</p>
+                            <p className="text-sm text-white/80">Streak</p>
                             <p className="text-2xl font-bold">{stats.streak} days</p>
                           </div>
                         </div>
                       </div>
-                      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+                      <div className="bg-white/10 backdrop-blur-sm rounded-[var(--app-radius)] p-4">
                         <div className="flex items-center gap-3">
                           <Crown className="h-5 w-5" />
                           <div>
-                            <p className="text-sm text-blue-200">Class Rank</p>
+                            <p className="text-sm text-white/80">Class Rank</p>
                             <p className="text-2xl font-bold">{stats.rank != null ? `#${stats.rank}` : '—'}</p>
                           </div>
                         </div>
@@ -346,7 +349,7 @@ export default function StudentDashboard() {
                     </Avatar>
 
                     <div className="text-center lg:text-right">
-                      <div className="text-blue-100 text-sm mb-2">Learning Streak</div>
+                      <div className="text-white/90 text-sm mb-2">Learning Streak</div>
                       <div className="flex items-center justify-center lg:justify-end gap-2">
                         <div className="flex">
                           {[...Array(7)].map((_, i) => (
@@ -453,7 +456,7 @@ export default function StudentDashboard() {
                         >
                           <Link
                             href={action.href}
-                            className="group block h-full p-5 rounded-2xl border border-gray-200 hover:border-transparent transition-all duration-300 bg-white hover:shadow-xl shadow-sm"
+                            className="group block h-full p-5 rounded-[var(--app-radius-lg)] border border-[hsl(var(--app-border))] transition-all duration-300 bg-[hsl(var(--app-surface))] hover:shadow-[var(--app-shadow-lg)] shadow-[var(--app-shadow)]"
                           >
                             <div className="flex items-start justify-between mb-4">
                               <div className={`p-3 rounded-xl ${action.bgColor}`}>
@@ -473,16 +476,16 @@ export default function StudentDashboard() {
                             <p className="text-sm text-gray-600 mb-4 line-clamp-2">{action.description}</p>
 
                             <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-blue-600 group-hover:text-blue-700">
+                              <span className="text-sm font-medium text-[hsl(var(--app-accent))]">
                                 Explore →
                               </span>
                               <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                <ChevronRight size={16} className="text-blue-500" />
+                                <ChevronRight size={16} className="text-[hsl(var(--app-accent))]" />
                               </div>
                             </div>
 
                             {/* Hover gradient overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-br from-transparent to-blue-500/5 opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity -z-10" />
+                            <div className="absolute inset-0 bg-gradient-to-br from-transparent to-[hsl(var(--app-accent))]/5 opacity-0 group-hover:opacity-100 rounded-[var(--app-radius-lg)] transition-opacity -z-10" />
                           </Link>
                         </motion.div>
                       );
@@ -510,7 +513,7 @@ export default function StudentDashboard() {
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.1 }}
-                        className="group p-4 rounded-xl border border-gray-200 bg-white hover:bg-gradient-to-r hover:from-white hover:to-emerald-50/50 transition-all duration-300 hover:border-emerald-200"
+                        className="group p-4 rounded-[var(--app-radius)] border border-[hsl(var(--app-border))] bg-[hsl(var(--app-surface))] hover:bg-[hsl(var(--app-sage-muted))]/50 transition-all duration-300"
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -527,7 +530,7 @@ export default function StudentDashboard() {
                           </div>
                           <div className="flex flex-col items-end">
                             <div className="w-2 h-2 rounded-full bg-emerald-500 mb-2 animate-pulse" />
-                            <ChevronRight size={16} className="text-gray-400 group-hover:text-emerald-600 transition-colors" />
+                            <ChevronRight size={16} className="text-[hsl(var(--app-text-muted))] group-hover:text-[hsl(var(--app-sage))] transition-colors" />
                           </div>
                         </div>
 
@@ -549,7 +552,7 @@ export default function StudentDashboard() {
                 <div className="mt-6 pt-5 border-t border-gray-200">
                   <Link
                     href="/student/timetable"
-                    className="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all hover:shadow-sm"
+                    className="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-[hsl(var(--app-text))] bg-[hsl(var(--app-accent-muted))] hover:opacity-90 rounded-[var(--app-radius)] transition-all min-h-[44px]"
                   >
                     <CalendarDays className="h-4 w-4 mr-2" />
                     View Weekly Schedule
@@ -758,9 +761,9 @@ export default function StudentDashboard() {
           {/* Footer */}
           <motion.div
             variants={itemVariants}
-            className="mt-8 lg:mt-12 pt-6 border-t border-gray-200"
+            className="mt-8 lg:mt-12 pt-6 border-t border-[hsl(var(--app-border))]"
           >
-            <div className="flex flex-col sm:flex-row items-center justify-between text-sm text-gray-500">
+            <div className="flex flex-col sm:flex-row items-center justify-between text-sm text-[hsl(var(--app-text-muted))]">
               <div className="flex items-center gap-4">
                 <span className="flex items-center gap-2">
                   <Shield className="h-4 w-4" />

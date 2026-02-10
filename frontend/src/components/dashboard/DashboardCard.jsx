@@ -19,7 +19,7 @@ export function DashboardCard({
   headerClassName,
   contentClassName,
   icon: Icon,
-  iconColor = 'text-blue-600',
+  iconColor = 'text-[hsl(var(--app-accent))]',
   ...props
 }) {
   return (
@@ -28,28 +28,28 @@ export function DashboardCard({
       className={cn('w-full', className)}
       {...props}
     >
-      <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+      <Card className="rounded-[var(--app-radius-lg)] border-[hsl(var(--app-border))] bg-[hsl(var(--app-surface))] shadow-[var(--app-shadow)] hover:shadow-[var(--app-shadow-lg)] transition-all duration-300">
         {(title || description) && (
           <CardHeader className={cn('pb-5', headerClassName)}>
             <div className="flex items-center gap-3">
               {Icon && (
-                <div className={cn("p-2 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100", iconColor)}>
+                <div className={cn("p-2 rounded-[var(--app-radius)] bg-[hsl(var(--app-accent-muted))]", iconColor)}>
                   <Icon className={cn("h-5 w-5", iconColor)} />
                 </div>
               )}
               <div className="flex-1">
                 {title && (
-                  <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <CardTitle className="text-xl font-bold text-[hsl(var(--app-text))] flex items-center gap-2">
                     {title}
                     {description && (
-                      <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                      <span className="text-xs font-normal text-[hsl(var(--app-text-muted))] bg-[hsl(var(--app-accent-muted))] px-2 py-0.5 rounded-full">
                         Beta
                       </span>
                     )}
                   </CardTitle>
                 )}
                 {description && (
-                  <CardDescription className="text-sm text-gray-600 mt-1">
+                  <CardDescription className="text-sm text-[hsl(var(--app-text-muted))] mt-1">
                     {description}
                   </CardDescription>
                 )}
@@ -62,7 +62,7 @@ export function DashboardCard({
         </CardContent>
 
         {/* Gradient overlay on hover */}
-        <div className="absolute inset-0 bg-gradient-to-br from-transparent to-blue-500/5 opacity-0 hover:opacity-100 rounded-2xl transition-opacity duration-300 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-br from-transparent to-[hsl(var(--app-accent))]/5 opacity-0 hover:opacity-100 rounded-[var(--app-radius-lg)] transition-opacity duration-300 pointer-events-none" />
       </Card>
     </motion.div>
   );

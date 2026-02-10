@@ -3,6 +3,8 @@ dotenv.config();
 
 import { createServer } from "http";
 import { Server } from "socket.io";
+import { createAdapter } from "@socket.io/redis-adapter";
+import { createClient } from "redis";
 import app from "./app.js";
 import connectDB from "./config/db.js";
 import { initializeSocketIO } from "./utils/socketHandler.js";
@@ -11,28 +13,55 @@ import { initializeWebPush } from "./services/notification.service.js";
 // Create HTTP server
 const httpServer = createServer(app);
 
-// Initialize Socket.IO
+// Parse CLIENT_URLS for CORS (comma-separated)
+const corsOrigins = process.env.CLIENT_URLS
+  ? process.env.CLIENT_URLS.split(",").map((u) => u.trim())
+  : "*";
+
+// Initialize Socket.IO with production-ready config
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.CLIENT_URLS || "*",
+    origin: corsOrigins,
     methods: ["GET", "POST"],
     credentials: true,
+    allowedHeaders: ["Authorization"],
   },
+  transports: process.env.FORCE_WEBSOCKET === "true" ? ["websocket"] : ["websocket", "polling"],
+  pingTimeout: 20000,
+  pingInterval: 10000,
+  connectTimeout: 45000,
+  maxHttpBufferSize: 1e6,
 });
 
-// Initialize Socket.IO handlers
-initializeSocketIO(io);
+// Redis adapter for horizontal scaling (optional - only if REDIS_URL is set)
+const setupRedisAdapter = async () => {
+  const redisUrl = process.env.REDIS_URL;
+  if (!redisUrl) {
+    console.log("Socket.IO: Running without Redis adapter (single instance)");
+    return;
+  }
+  try {
+    const pubClient = createClient({ url: redisUrl });
+    const subClient = pubClient.duplicate();
+    await Promise.all([pubClient.connect(), subClient.connect()]);
+    io.adapter(createAdapter(pubClient, subClient));
+    console.log("Socket.IO: Redis adapter connected (horizontal scaling enabled)");
+  } catch (err) {
+    console.warn("Socket.IO: Redis adapter failed, falling back to in-memory:", err.message);
+  }
+};
 
-// Make io available globally (for use in controllers if needed)
-app.set("io", io);
-
-// Connect to database and create Super Admin (if needed)
-// Then start the server
+// Initialize Socket.IO handlers (after adapter is ready)
 const startServer = async () => {
   try {
     await connectDB();
 
-    // Initialize Web Push (VAPID) once on startup
+    await setupRedisAdapter();
+
+    initializeSocketIO(io);
+
+    app.set("io", io);
+
     initializeWebPush();
 
     const PORT = process.env.PORT || 5000;
@@ -45,5 +74,24 @@ const startServer = async () => {
     process.exit(1);
   }
 };
+
+// Graceful shutdown
+const gracefulShutdown = () => {
+  console.log("Shutting down gracefully...");
+  io.close(() => {
+    console.log("All Socket.IO connections closed");
+    httpServer.close(() => {
+      console.log("HTTP server closed");
+      process.exit(0);
+    });
+  });
+  setTimeout(() => {
+    console.error("Forcing shutdown after 30s timeout");
+    process.exit(1);
+  }, 30000);
+};
+
+process.on("SIGTERM", gracefulShutdown);
+process.on("SIGINT", gracefulShutdown);
 
 startServer();
