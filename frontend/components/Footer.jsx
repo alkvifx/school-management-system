@@ -46,10 +46,30 @@ const Footer = () => {
   ];
 
   const socialLinks = [
-    { name: 'Facebook', icon: Facebook, href: '#', color: 'from-blue-600 to-blue-800' },
-    { name: 'Twitter', icon: Twitter, href: '#', color: 'from-sky-500 to-sky-700' },
-    { name: 'Instagram', icon: Instagram, href: '#', color: 'from-pink-500 to-rose-700' },
-    { name: 'YouTube', icon: Youtube, href: '#', color: 'from-red-500 to-red-700' },
+    {
+      name: 'Facebook',
+      icon: Facebook,
+      href: 'https://facebook.com',
+      color: 'from-blue-600 to-blue-800',
+    },
+    {
+      name: 'Twitter',
+      icon: Twitter,
+      href: 'https://twitter.com',
+      color: 'from-sky-500 to-sky-700',
+    },
+    {
+      name: 'Instagram',
+      icon: Instagram,
+      href: 'https://instagram.com',
+      color: 'from-pink-500 to-rose-700',
+    },
+    {
+      name: 'YouTube',
+      icon: Youtube,
+      href: 'https://youtube.com',
+      color: 'from-red-500 to-red-700',
+    },
   ];
 
   const resources = [
@@ -290,7 +310,9 @@ const Footer = () => {
                   <h4 className="font-semibold text-white mb-1">Our Location</h4>
                   <p className="text-blue-200 text-sm">{SCHOOL_INFO.address}</p>
                   <motion.a
-                    href="#"
+                    href={SCHOOL_INFO.mapUrl || '#'}
+                    target={SCHOOL_INFO.mapUrl ? '_blank' : undefined}
+                    rel={SCHOOL_INFO.mapUrl ? 'noopener noreferrer' : undefined}
                     className="inline-flex items-center gap-1 text-amber-400 text-xs mt-2 opacity-0 group-hover:opacity-100 transition-opacity"
                     whileHover={{ x: 5 }}
                   >

@@ -27,6 +27,10 @@ import {
   deleteMedia,
 } from "../controllers/cms.controller.js";
 import {
+  getPublicContentForPrincipal,
+  updatePublicContent,
+} from "../controllers/publicContent.controller.js";
+import {
   createNotification,
   getPrincipalNotifications,
   deleteNotification,
@@ -169,6 +173,17 @@ router.get("/media", getMedia);
 // @desc    Delete media
 // @access  PRINCIPAL
 router.delete("/media/:id", deleteMedia);
+
+// ==================== PUBLIC WEBSITE CONTENT ====================
+// @route   GET /api/principal/public-content
+// @desc    Get structured public website content for this school
+// @access  PRINCIPAL
+router.get("/public-content", getPublicContentForPrincipal);
+
+// @route   PUT /api/principal/public-content
+// @desc    Update structured public website content sections
+// @access  PRINCIPAL
+router.put("/public-content", updatePublicContent);
 
 // ==================== NOTIFICATION OPERATIONS ====================
 // @route   POST /api/principal/notifications

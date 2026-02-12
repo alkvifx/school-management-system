@@ -213,35 +213,48 @@ export const forgotPassword = asyncHandler(async (req, res) => {
     role: { $in: ["PRINCIPAL", "TEACHER", "STUDENT"] },
   });
 
-  // Security: Don't reveal if email exists or not
-  // Always return success message
-  if (user && user.isActive) {
-    // Generate password reset OTP
-    const otp = generateOTP();
-    const hashedOTP = await hashOTP(otp);
-    const otpExpires = getOTPExpiration();
-
-    // Update user with reset OTP
-    user.passwordResetOTP = hashedOTP;
-    user.passwordResetOTPExpires = otpExpires;
-    await user.save();
-
-    // Send password reset email
-    try {
-      await sendPasswordResetOTP(user.email, user.name, otp);
-    } catch (error) {
-      console.error("Failed to send password reset email:", error);
-      // Clear OTP if email fails
-      user.passwordResetOTP = null;
-      user.passwordResetOTPExpires = null;
-      await user.save();
-    }
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "No account found with this email address.",
+    });
   }
 
-  // Always return same message for security
+  if (!user.isActive) {
+    return res.status(401).json({
+      success: false,
+      message: "Account is inactive. Please contact the school administrator.",
+    });
+  }
+
+  // Generate password reset OTP
+  const otp = generateOTP();
+  const hashedOTP = await hashOTP(otp);
+  const otpExpires = getOTPExpiration();
+
+  // Update user with reset OTP
+  user.passwordResetOTP = hashedOTP;
+  user.passwordResetOTPExpires = otpExpires;
+  await user.save();
+
+  // Send password reset email
+  try {
+    await sendPasswordResetOTP(user.email, user.name, otp);
+  } catch (error) {
+    console.error("Failed to send password reset email:", error);
+    // Clear OTP if email fails
+    user.passwordResetOTP = null;
+    user.passwordResetOTPExpires = null;
+    await user.save();
+    return res.status(500).json({
+      success: false,
+      message: "Failed to send password reset email. Please try again later.",
+    });
+  }
+
   res.status(200).json({
     success: true,
-    message: "If an account exists with this email, a password reset code has been sent.",
+    message: "Password reset code has been sent to your email.",
   });
 });
 

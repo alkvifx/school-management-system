@@ -18,6 +18,7 @@ import feeRoutes from "./routes/fee.routes.js";
 import noticeRoutes from "./routes/notice.routes.js";
 import aiChatRoutes from "./routes/aiChat.routes.js";
 import aiRoutes from "./routes/ai.routes.js";
+import publicRoutes from "./routes/public.routes.js";
 
 
 const app = express();
@@ -45,6 +46,8 @@ app.use("/api/notices", noticeRoutes);
 app.use("/api/ai", aiChatRoutes);
 // Principal AI (templates, notices, posters, result-analysis): /api/principal/ai/*
 app.use("/api/principal/ai", aiRoutes);
+// Public (unauthenticated) content + contact
+app.use("/api/public", publicRoutes);
 // Health check route
 app.get("/", (req, res) => {
   res.json({

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { GALLERY_IMAGES } from '@/lib/data';
+import { publicContentService } from '@/src/services/publicContent.service';
 
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
@@ -13,13 +14,39 @@ const fadeIn = {
 export default function GalleryPage() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedImage, setSelectedImage] = useState(null);
+  const [images, setImages] = useState(GALLERY_IMAGES);
 
-  const categories = ['All', ...new Set(GALLERY_IMAGES.map(img => img.category))];
+  useEffect(() => {
+    let isMounted = true;
+    publicContentService
+      .getPublicContent()
+      .then((data) => {
+        if (!isMounted) return;
+        if (data?.gallery?.images?.length) {
+          const mapped = data.gallery.images.map((img, idx) => ({
+            id: idx,
+            url: img.url,
+            title: img.title || 'School Life',
+            category: img.category || 'Events',
+          }));
+          setImages(mapped);
+        }
+      })
+      .catch(() => {
+        // silently fall back to static images
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const categories = ['All', ...new Set(images.map((img) => img.category))];
 
   const filteredImages =
     selectedCategory === 'All'
-      ? GALLERY_IMAGES
-      : GALLERY_IMAGES.filter(img => img.category === selectedCategory);
+      ? images
+      : images.filter((img) => img.category === selectedCategory);
 
   return (
     <div>

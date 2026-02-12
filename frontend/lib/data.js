@@ -9,6 +9,7 @@ export const SCHOOL_INFO = {
   established: "1985",
   affiliation: " Affiliation No: 1234567",
   medium : "English",
+  mapUrl: "https://www.google.com/maps/search/?api=1&query=Delhi+Public+School+Noida",
 };
 
 export const HERO_SLIDES = [

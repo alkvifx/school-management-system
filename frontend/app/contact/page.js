@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Phone, Mail, Clock, Send, User, MessageSquare } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, Send, User, MessageSquare, Loader2, CheckCircle2 } from 'lucide-react';
 import { SCHOOL_INFO } from '@/lib/data';
+import { contactService } from '@/src/services/contact.service';
 
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
@@ -18,22 +19,44 @@ export default function ContactPage() {
     subject: '',
     message: '',
   });
-
+  const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // In a real application, you would send this data to your backend
-    console.log('Form submitted:', formData);
-    setSubmitted(true);
-    setTimeout(() => {
-      setSubmitted(false);
-      setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
-    }, 3000);
-  };
+  const [error, setError] = useState('');
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (!formData.name || !formData.email || !formData.subject || !formData.message) {
+      setError('Please fill in all required fields.');
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      await contactService.sendMessage({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        subject: formData.subject,
+        message: formData.message,
+      });
+      setSubmitted(true);
+      setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
+    } catch (err) {
+      setError(err.message || 'Failed to send your message. Please try again.');
+    } finally {
+      setSubmitting(false);
+      // Hide success after a few seconds (non-blocking)
+      if (!error) {
+        setTimeout(() => setSubmitted(false), 4000);
+      }
+    }
   };
 
   return (
@@ -214,17 +237,28 @@ export default function ContactPage() {
                   </div>
                 </div>
 
+                {error && (
+                  <div className="p-3 rounded-xl border border-red-200 bg-red-50 text-red-700 text-sm flex items-center gap-2">
+                    <span>{error}</span>
+                  </div>
+                )}
+
+                {submitted && !error && (
+                  <div className="p-3 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm flex items-center gap-2">
+                    <CheckCircle2 size={18} />
+                    <span>Your message has been sent to the school. We will get back to you soon.</span>
+                  </div>
+                )}
+
                 <button
                   type="submit"
-                  disabled={submitted}
+                  disabled={submitting}
                   className="w-full px-8 py-4 bg-gradient-to-r from-blue-900 to-blue-700 text-white rounded-xl font-semibold hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {submitted ? (
+                  {submitting ? (
                     <>
-                      <span>Message Sent!</span>
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
+                      <Loader2 size={20} className="animate-spin" />
+                      <span>Sending...</span>
                     </>
                   ) : (
                     <>

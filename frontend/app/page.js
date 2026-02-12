@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 // import PwaInstallPrompt from '@/src/components/PwaInstallPrompt';
@@ -12,7 +13,6 @@ import {
   Monitor,
   Trophy,
   ArrowRight,
-  Quote,
   GraduationCap,
   Award,
   Clock,
@@ -27,6 +27,9 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import { HERO_SLIDES, HIGHLIGHTS, ANNOUNCEMENTS, GALLERY_IMAGES, SCHOOL_INFO } from '@/lib/data';
+import { publicContentService } from '@/src/services/publicContent.service';
+import { useAuth } from '@/src/context/auth.context';
+import { ROLES } from '@/src/utils/constants';
 
 // ==================== OPTIMIZED ANIMATIONS ====================
 const prefersReducedMotion = typeof window !== 'undefined' ?
@@ -203,43 +206,127 @@ const LazyStats = dynamic(() => Promise.resolve(({ stats }) => (
 export default function HomePage() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
+  const [publicContent, setPublicContent] = useState(null);
   const containerRef = useRef(null);
   const shouldReduceMotion = useReducedMotion();
+  const { user } = useAuth();
+  const router = useRouter();
 
   // Memoized values
-  const stats = useMemo(() => [
-    {
-      value: "40+",
-      label: "Years of Excellence",
-      icon: Clock,
-      color: "from-amber-500 to-amber-600",
-    },
-    {
-      value: "2500+",
-      label: "Happy Students",
-      icon: Heart,
-      color: "from-pink-500 to-rose-600",
-    },
-    {
-      value: "150+",
-      label: "Qualified Teachers",
-      icon: Award,
-      color: "from-blue-500 to-blue-600",
-    },
-    {
-      value: "95%",
-      label: "Merit Students",
-      icon: Target,
-      color: "from-emerald-500 to-emerald-600",
-    },
-  ], []);
+  const stats = useMemo(() => {
+    if (publicContent?.stats) {
+      return [
+        {
+          value: publicContent.stats.yearsOfExcellence || "40+",
+          label: "Years of Excellence",
+          icon: Clock,
+          color: "from-amber-500 to-amber-600",
+        },
+        {
+          value: publicContent.stats.studentsCount || "2500+",
+          label: "Happy Students",
+          icon: Heart,
+          color: "from-pink-500 to-rose-600",
+        },
+        {
+          value: publicContent.stats.teachersCount || "150+",
+          label: "Qualified Teachers",
+          icon: Award,
+          color: "from-blue-500 to-blue-600",
+        },
+        {
+          value: "95%",
+          label: "Merit Students",
+          icon: Target,
+          color: "from-emerald-500 to-emerald-600",
+        },
+      ];
+    }
 
-  const features = useMemo(() => [
-    { icon: Brain, text: 'Critical Thinking' },
-    { icon: Shield, text: 'Moral Values' },
-    { icon: Globe, text: 'Global Exposure' },
-    { icon: Zap, text: 'Innovation Focus' }
-  ], []);
+    return [
+      {
+        value: "40+",
+        label: "Years of Excellence",
+        icon: Clock,
+        color: "from-amber-500 to-amber-600",
+      },
+      {
+        value: "2500+",
+        label: "Happy Students",
+        icon: Heart,
+        color: "from-pink-500 to-rose-600",
+      },
+      {
+        value: "150+",
+        label: "Qualified Teachers",
+        icon: Award,
+        color: "from-blue-500 to-blue-600",
+      },
+      {
+        value: "95%",
+        label: "Merit Students",
+        icon: Target,
+        color: "from-emerald-500 to-emerald-600",
+      },
+    ];
+  }, [publicContent]);
+
+  const features = useMemo(
+    () => [
+      { icon: Brain, text: 'Critical Thinking' },
+      { icon: Shield, text: 'Moral Values' },
+      { icon: Globe, text: 'Global Exposure' },
+      { icon: Zap, text: 'Innovation Focus' },
+    ],
+    []
+  );
+
+  const announcements = useMemo(
+    () => publicContent?.announcements || ANNOUNCEMENTS,
+    [publicContent]
+  );
+
+  const galleryImages = useMemo(() => {
+    if (publicContent?.gallery?.images?.length) {
+      return publicContent.gallery.images.map((img, idx) => ({
+        id: idx,
+        url: img.url,
+        title: img.title || 'School Life',
+        category: img.category || 'Events',
+      }));
+    }
+    return GALLERY_IMAGES;
+  }, [publicContent]);
+
+  const legacyTitle =
+    publicContent?.legacy?.title || 'About Our Legacy';
+  const legacyLines =
+    publicContent?.legacy?.lines && publicContent.legacy.lines.length > 0
+      ? publicContent.legacy.lines
+      : [
+          `${SCHOOL_INFO.name} is committed to providing world-class education that nurtures intellectual curiosity, critical thinking, and moral values.`,
+        ];
+  const legacyImage =
+    publicContent?.legacy?.mainGateImageUrl || '/images/school1.jpg';
+
+  const principalName =
+    publicContent?.principalSection?.name || 'Principal Name';
+  const principalMessageLines =
+    publicContent?.principalSection?.messageLines && publicContent.principalSection.messageLines.length > 0
+      ? publicContent.principalSection.messageLines
+      : [
+          'Education is not just about academics; it is about building character, fostering creativity, and developing lifelong learners.',
+        ];
+  const principalPhoto =
+    publicContent?.principalSection?.photoUrl || '/images/principal.jpg';
+
+  // Map highlight icon strings to actual Lucide icons
+  const highlightIconMap = {
+    Users,
+    Monitor,
+    Trophy,
+    AwardIcon: Award,
+  };
 
   // Optimized handlers
   const handleSlideChange = useCallback((index) => {
@@ -255,6 +342,25 @@ export default function HomePage() {
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Load public content for landing page sections (navbar/footer use static SCHOOL_INFO for now)
+  useEffect(() => {
+    let isMounted = true;
+    publicContentService
+      .getPublicContent()
+      .then((data) => {
+        if (isMounted) {
+          setPublicContent(data);
+        }
+      })
+      .catch(() => {
+        // Fail silently; UI will fall back to static constants
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -314,15 +420,18 @@ export default function HomePage() {
           >
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-full mb-4">
               <Sparkles className="w-3 h-3 text-amber-400" />
-              <span className="text-xs font-medium text-white/90">Premium Education Since 1985</span>
+              <span className="text-xs font-medium text-white/90">
+                Premium Education Since{' '}
+                {publicContent?.banner?.educatingSince || SCHOOL_INFO.established || '1985'}
+              </span>
             </div>
 
             <h1 className="text-4xl md:text-5xl font-bold mb-4 leading-tight text-white">
-              {HERO_SLIDES[currentSlide].title}
+              {publicContent?.banner?.headingPrimary || HERO_SLIDES[currentSlide].title}
             </h1>
 
             <p className="text-lg md:text-xl mb-6 text-blue-100 max-w-2xl leading-relaxed">
-              {HERO_SLIDES[currentSlide].subtitle}
+              {publicContent?.banner?.description || HERO_SLIDES[currentSlide].subtitle}
             </p>
 
             <div className="flex flex-wrap gap-3 items-center">
@@ -371,16 +480,16 @@ export default function HomePage() {
             <motion.div variants={slideInLeft}>
               <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-500/20 rounded-full text-sm font-semibold mb-4">
                 <Sparkles className="w-3 h-3 text-amber-400" />
-                About Our Legacy
+                {legacyTitle}
               </div>
 
               <h2 className="text-3xl md:text-4xl font-bold mb-6 leading-tight text-white">
-                Shaping Future Leaders Since 1985
+                Shaping Future Leaders Since{' '}
+                {publicContent?.banner?.educatingSince || SCHOOL_INFO.established || '1985'}
               </h2>
 
               <p className="text-lg text-blue-100 mb-6 leading-relaxed">
-                {SCHOOL_INFO.name} is committed to providing world-class education that nurtures
-                intellectual curiosity, critical thinking, and moral values.
+                {legacyLines.join(' ')}
               </p>
 
               <div className="grid grid-cols-2 gap-3 mb-6">
@@ -401,7 +510,7 @@ export default function HomePage() {
             <motion.div variants={slideInRight} className="relative">
               <div className="relative rounded-xl overflow-hidden shadow-lg">
                 <Image
-                  src="/images/school1.jpg"
+                  src={legacyImage}
                   alt="School Campus"
                   width={600}
                   height={400}
@@ -429,7 +538,7 @@ export default function HomePage() {
             <div className="relative">
               <div className="relative rounded-xl overflow-hidden shadow-lg">
                 <Image
-                  src="/images/principal.jpg"
+                  src={principalPhoto}
                   alt="Principal"
                   width={600}
                   height={400}
@@ -453,8 +562,7 @@ export default function HomePage() {
 
               <div className="relative mb-6">
                 <p className="text-lg text-gray-600 mb-4 leading-relaxed italic">
-                  "Education is not just about academics; it's about building character, fostering
-                  creativity, and developing lifelong learners."
+                  {`"${principalMessageLines.join(' ')}"`}
                 </p>
               </div>
 
@@ -464,8 +572,10 @@ export default function HomePage() {
                     <span className="text-lg font-bold text-white">P</span>
                   </div>
                   <div>
-                    <p className="font-bold text-lg text-gray-900">Principal Name</p>
-                    <p className="text-gray-600">Principal</p>
+                      <p className="font-bold text-lg text-gray-900">{principalName}</p>
+                      <p className="text-gray-600">
+                        {publicContent?.principalSection?.designation || 'Principal'}
+                      </p>
                   </div>
                 </div>
               </div>
@@ -494,7 +604,13 @@ export default function HomePage() {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
             {HIGHLIGHTS.map((highlight, index) => (
-              <HighlightCard key={index} highlight={highlight} />
+              <HighlightCard
+                key={index}
+                highlight={{
+                  ...highlight,
+                  icon: highlightIconMap[highlight.icon] || Star,
+                }}
+              />
             ))}
           </div>
         </div>
@@ -516,7 +632,7 @@ export default function HomePage() {
           </motion.div>
 
           <div className="grid md:grid-cols-2 gap-6 max-w-6xl mx-auto">
-            {ANNOUNCEMENTS.slice(0, 4).map((announcement) => (
+            {announcements.slice(0, 4).map((announcement) => (
               <div key={announcement.id} className="group">
                 <div className={`relative p-6 rounded-xl ${
                   announcement.important
@@ -583,7 +699,7 @@ export default function HomePage() {
             </p>
           </motion.div>
 
-          <LazyGallery images={GALLERY_IMAGES} />
+          <LazyGallery images={galleryImages} />
 
           <div className="text-center mt-12">
             <Link
@@ -651,6 +767,16 @@ export default function HomePage() {
           </motion.div>
         </div>
       </section>
+      {/* Principal inline edit shortcut – only visible to Principal users */}
+      {user?.role === ROLES.PRINCIPAL && (
+        <button
+          type="button"
+          onClick={() => router.push('/principal/website/public-content')}
+          className="fixed bottom-24 right-4 z-40 rounded-full bg-blue-600 text-white px-4 py-2 text-xs font-semibold shadow-lg hover:bg-blue-700"
+        >
+          Edit Public Content
+        </button>
+      )}
     </div>
   );
 }

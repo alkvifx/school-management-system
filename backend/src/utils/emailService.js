@@ -118,3 +118,79 @@ export const sendPasswordResetOTP = async (email, name, otp) => {
     throw new Error("Failed to send password reset email");
   }
 };
+
+/**
+ * Send contact form message to admin/principal
+ */
+export const sendContactFormEmail = async ({ name, email, phone, subject, message }) => {
+  try {
+    const transporter = createTransporter();
+
+    const toEmail =
+      process.env.CONTACT_RECEIVER_EMAIL ||
+      process.env.SMTP_USER ||
+      process.env.EMAIL_USER;
+
+    const mailOptions = {
+      from: `"${process.env.EMAIL_FROM_NAME || "School Website Contact"}" <${
+        process.env.SMTP_USER || process.env.EMAIL_USER
+      }>`,
+      to: toEmail,
+      subject: `New Contact Message: ${subject}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <body style="font-family: Arial, sans-serif; background:#f5f5f5; padding:20px">
+          <div style="max-width:600px;margin:auto;background:#ffffff;border-radius:10px;overflow:hidden">
+            <div style="background:#2563eb;color:white;padding:20px;text-align:center">
+              <h2>New Website Contact Message</h2>
+            </div>
+            <div style="padding:24px;color:#333">
+              <p>You have received a new message from the public website contact form.</p>
+              <table style="width:100%;margin-top:16px;border-collapse:collapse">
+                <tr>
+                  <td style="padding:8px 0;font-weight:bold;width:120px;">Name:</td>
+                  <td style="padding:8px 0;">${name}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0;font-weight:bold;">Email:</td>
+                  <td style="padding:8px 0;">${email}</td>
+                </tr>
+                ${
+                  phone
+                    ? `<tr>
+                        <td style="padding:8px 0;font-weight:bold;">Phone:</td>
+                        <td style="padding:8px 0;">${phone}</td>
+                      </tr>`
+                    : ""
+                }
+                <tr>
+                  <td style="padding:8px 0;font-weight:bold;">Subject:</td>
+                  <td style="padding:8px 0;">${subject}</td>
+                </tr>
+              </table>
+
+              <div style="margin-top:24px;">
+                <p style="font-weight:bold;margin-bottom:8px;">Message:</p>
+                <div style="padding:12px 16px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb;white-space:pre-wrap;">
+                  ${message}
+                </div>
+              </div>
+            </div>
+            <div style="text-align:center;font-size:12px;color:#999;padding-bottom:16px">
+              Sent automatically from the school website contact form
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log("✅ Contact form email sent");
+    return true;
+  } catch (error) {
+    console.error("❌ Contact form email failed:", error.message);
+    throw new Error("Failed to send contact email");
+  }
+};
