@@ -80,10 +80,10 @@ const Navbar = () => {
       icon: Info,
       description: 'Our legacy & values',
       dropdown: [
-        { name: 'History', href: '/about/history' },
-        { name: 'Vision & Mission', href: '/about/vision' },
-        { name: 'Management', href: '/about/management' },
-        { name: 'Faculty', href: '/about/faculty' }
+        { name: 'History', href: '/about' },
+        { name: 'Vision & Mission', href: '/about' },
+        { name: 'Management', href: '/about' },
+        { name: 'Faculty', href: '/about' }
       ]
     },
     {
@@ -92,9 +92,9 @@ const Navbar = () => {
       icon: BookOpen,
       description: 'Learning programs',
       dropdown: [
-        { name: 'Curriculum', href: '/academics/curriculum' },
-        { name: 'Admissions', href: '/academics/admissions' },
-        { name: 'Examination', href: '/academics/examination' },
+        { name: 'Curriculum', href: '/academics' },
+        { name: 'Admissions', href: '/academics' },
+        { name: 'Examination', href: '/academics' },
         { name: 'Results', href: '/academics/results' }
       ]
     },
@@ -104,10 +104,10 @@ const Navbar = () => {
       icon: Building,
       description: 'Modern infrastructure',
       dropdown: [
-        { name: 'Classrooms', href: '/facilities/classrooms' },
-        { name: 'Laboratories', href: '/facilities/labs' },
-        { name: 'Sports', href: '/facilities/sports' },
-        { name: 'Library', href: '/facilities/library' }
+        { name: 'Classrooms', href: '/facilities' },
+        { name: 'Laboratories', href: '/facilities' },
+        { name: 'Sports', href: '/facilities' },
+        { name: 'Library', href: '/facilities' }
       ]
     },
     {

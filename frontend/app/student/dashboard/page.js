@@ -11,6 +11,7 @@ import { leaderboardService } from '@/src/services/leaderboard.service';
 import { StatCard } from '@/src/components/dashboard/StatCard';
 import { DashboardCard } from '@/src/components/dashboard/DashboardCard';
 import { StatCardSkeleton } from '@/src/components/dashboard/LoadingSkeleton';
+import { QuickAction } from '@/src/components/dashboard/QuickAction';
 import { FeesStatusBanner } from '@/src/components/fees/FeesStatusBanner';
 import { useStudentFeeStatus } from '@/src/hooks/useStudentFeeStatus';
 import { NoticeBanner } from '@/src/components/notices/NoticeBanner';
@@ -100,76 +101,37 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 }
 };
 
+// Focused, student-facing quick actions (one-tap essentials)
 const quickActions = [
   {
-    href: '/student/leaderboard',
-    title: 'Leaderboard',
-    description: 'Stars, ranks & classmates',
-    icon: Trophy,
-    color: 'from-amber-500 to-orange-500',
-    bgColor: 'bg-gradient-to-br from-amber-50 to-orange-50',
-    badge: '⭐',
-    badgeColor: 'bg-amber-100 text-amber-800'
-  },
-  {
-    href: '/student/attendance',
-    title: 'Attendance Tracker',
-    description: 'Monitor your daily presence',
-    icon: ClipboardList,
-    color: 'from-blue-500 to-cyan-500',
-    bgColor: 'bg-gradient-to-br from-blue-50 to-cyan-50',
-    badge: null,
-    badgeColor: 'bg-emerald-100 text-emerald-800'
+    href: '/student/assignments',
+    label: 'View Homework',
+    description: 'See today’s homework and upcoming deadlines',
+    icon: BookOpen,
+    accentClass: 'from-amber-500 to-orange-500',
+    badge: 'Today',
   },
   {
     href: '/student/marks',
-    title: 'Performance Hub',
-    description: 'View grades & analytics',
+    label: 'View Results',
+    description: 'Exam results and subject-wise performance',
     icon: Award,
-    color: 'from-purple-500 to-violet-500',
-    bgColor: 'bg-gradient-to-br from-purple-50 to-violet-50',
-    badge: 'A+',
-    badgeColor: 'bg-purple-100 text-purple-800'
-  },
-  {
-    href: '/student/timetable',
-    title: 'Smart Schedule',
-    description: 'Your weekly timetable',
-    icon: CalendarDays,
-    color: 'from-emerald-500 to-teal-500',
-    bgColor: 'bg-gradient-to-br from-emerald-50 to-teal-50',
-    badge: 'Today',
-    badgeColor: 'bg-emerald-100 text-emerald-800'
-  },
-  {
-    href: '/student/assignments',
-    title: 'Assignments',
-    description: 'Pending work & deadlines',
-    icon: BookOpen,
-    color: 'from-amber-500 to-orange-500',
-    bgColor: 'bg-gradient-to-br from-amber-50 to-orange-50',
-    badge: '3 New',
-    badgeColor: 'bg-amber-100 text-amber-800'
-  },
-  {
-    href: '/student/resources',
-    title: 'Study Resources',
-    description: 'Notes & materials',
-    icon: FileText,
-    color: 'from-rose-500 to-pink-500',
-    bgColor: 'bg-gradient-to-br from-rose-50 to-pink-50',
+    accentClass: 'from-purple-500 to-violet-500',
     badge: 'Updated',
-    badgeColor: 'bg-rose-100 text-rose-800'
+  },
+  {
+    href: '/notices',
+    label: 'View Notices',
+    description: 'Announcements from school & principal',
+    icon: Bell,
+    accentClass: 'from-blue-500 to-cyan-500',
   },
   {
     href: '/student/chat',
-    title: 'Class Chat',
-    description: 'Connect with classmates',
+    label: 'Chat with Teacher',
+    description: 'Ask doubts and stay in touch',
     icon: MessageSquare,
-    color: 'from-indigo-500 to-blue-500',
-    bgColor: 'bg-gradient-to-br from-indigo-50 to-blue-50',
-    badge: '12 Online',
-    badgeColor: 'bg-indigo-100 text-indigo-800'
+    accentClass: 'from-emerald-500 to-teal-500',
   },
 ];
 
@@ -417,20 +379,18 @@ export default function StudentDashboard() {
             />
           </motion.div>
 
-          {/* Stats Overview */}
-          <motion.div variants={itemVariants} className="mb-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Compact key stats row */}
+          <motion.div variants={itemVariants} className="mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {loading ? (
                 Array(4).fill(0).map((_, i) => <StatCardSkeleton key={i} />)
               ) : (
                 <>
                   <StatCard
-                    title="Academic Score"
+                    title="Overall"
                     value={`${stats.overallScore}%`}
-                    description="Overall performance"
+                    description="Academic score"
                     icon={Trophy}
-                    trend="up"
-                    trendValue={stats.improvement}
                     iconBg="bg-gradient-to-br from-amber-500 to-orange-500"
                   />
                   <StatCard
@@ -438,26 +398,20 @@ export default function StudentDashboard() {
                     value={`${stats.attendance}%`}
                     description="This month"
                     icon={CheckCircle2}
-                    trend="up"
-                    trendValue="↑ 2%"
                     iconBg="bg-gradient-to-br from-emerald-500 to-teal-500"
                   />
                   <StatCard
-                    title="Class Rank"
+                    title="Rank"
                     value={stats.rank != null ? `#${stats.rank}` : '—'}
-                    description={stats.totalStars > 0 ? `${stats.totalStars} stars` : 'Stars & rank'}
+                    description={stats.totalStars ? `${stats.totalStars} stars` : 'Class position'}
                     icon={Crown}
-                    trend="up"
-                    trendValue={stats.improvement || (stats.totalStars > 0 ? '⭐' : '')}
                     iconBg="bg-gradient-to-br from-purple-500 to-pink-500"
                   />
                   <StatCard
-                    title="Active Streak"
-                    value={`${stats.streak} days`}
+                    title="Streak"
+                    value={`${stats.streak}d`}
                     description={getStreakMessage(stats.streak)}
                     icon={Flame}
-                    trend="up"
-                    trendValue="🔥 Hot"
                     iconBg="bg-gradient-to-br from-red-500 to-orange-500"
                   />
                 </>
@@ -465,69 +419,30 @@ export default function StudentDashboard() {
             </div>
           </motion.div>
 
-          {/* Main Content */}
+          {/* Main Content – quick actions + today's schedule */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
             {/* Left Column - Quick Actions */}
             <motion.div variants={itemVariants} className="lg:col-span-2">
               <DashboardCard
-                title="Quick Access"
-                description="Everything you need, instantly"
+                title="What do you want to do?"
+                description="One-tap access to your daily essentials"
                 icon={Zap}
                 className="h-full"
                 headerClassName="border-b border-gray-200 pb-5"
                 iconColor="text-amber-600"
               >
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <AnimatePresence>
-                    {quickActions.map((action, index) => {
-                      const Icon = action.icon;
-                      return (
-                        <motion.div
-                          key={action.href}
-                          variants={itemVariants}
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: index * 0.05 }}
-                          whileHover={{ y: -4, scale: 1.02 }}
-                          className="relative"
-                        >
-                          <Link
-                            href={action.href}
-                            className="group block h-full p-5 rounded-[var(--app-radius-lg)] border border-[hsl(var(--app-border))] transition-all duration-300 bg-[hsl(var(--app-surface))] hover:shadow-[var(--app-shadow-lg)] shadow-[var(--app-shadow)]"
-                          >
-                            <div className="flex items-start justify-between mb-4">
-                              <div className={`p-3 rounded-xl ${action.bgColor}`}>
-                                <div className={`p-2 rounded-lg bg-gradient-to-br ${action.color} text-white`}>
-                                  <Icon size={22} />
-                                </div>
-                              </div>
-
-                              {action.badge && (
-                                <Badge className={`${action.badgeColor} text-xs font-medium`}>
-                                  {action.badge}
-                                </Badge>
-                              )}
-                            </div>
-
-                            <h3 className="font-bold text-gray-900 mb-2 text-lg">{action.title}</h3>
-                            <p className="text-sm text-gray-600 mb-4 line-clamp-2">{action.description}</p>
-
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-[hsl(var(--app-accent))]">
-                                Explore →
-                              </span>
-                              <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                <ChevronRight size={16} className="text-[hsl(var(--app-accent))]" />
-                              </div>
-                            </div>
-
-                            {/* Hover gradient overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-br from-transparent to-[hsl(var(--app-accent))]/5 opacity-0 group-hover:opacity-100 rounded-[var(--app-radius-lg)] transition-opacity -z-10" />
-                          </Link>
-                        </motion.div>
-                      );
-                    })}
-                  </AnimatePresence>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {quickActions.map((action) => (
+                    <QuickAction
+                      key={action.href}
+                      href={action.href}
+                      icon={action.icon}
+                      label={action.label}
+                      description={action.description}
+                      badge={action.badge}
+                      accentClass={action.accentClass}
+                    />
+                  ))}
                 </div>
               </DashboardCard>
             </motion.div>
@@ -600,91 +515,8 @@ export default function StudentDashboard() {
             </motion.div>
           </div>
 
-          {/* Subjects Performance */}
-          <motion.div variants={itemVariants} className="mt-8">
-            <DashboardCard
-              title="Subject Performance"
-              description="Your scores across subjects"
-              icon={BarChart3}
-              className="h-full"
-              headerClassName="border-b border-gray-200 pb-5"
-              iconColor="text-blue-600"
-            >
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                {subjects.map((subject, index) => {
-                  const Icon = subject.icon;
-                  return (
-                    <motion.div
-                      key={subject.name}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: index * 0.1 }}
-                      whileHover={{ y: -4 }}
-                      className="group"
-                    >
-                      <div className="p-5 rounded-2xl border border-gray-200 bg-white hover:shadow-lg transition-all duration-300">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className={`p-3 rounded-xl bg-gradient-to-br ${subject.color} text-white`}>
-                            <Icon className="h-6 w-6" />
-                          </div>
-                          <Badge className={cn(
-                            "text-xs font-bold",
-                            subject.score >= 90 ? "bg-emerald-100 text-emerald-800" :
-                            subject.score >= 80 ? "bg-blue-100 text-blue-800" :
-                            subject.score >= 70 ? "bg-amber-100 text-amber-800" :
-                            "bg-rose-100 text-rose-800"
-                          )}>
-                            {subject.score}%
-                          </Badge>
-                        </div>
-
-                        <h4 className="font-bold text-gray-900 mb-2">{subject.name}</h4>
-
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between text-xs text-gray-600">
-                            <span>Progress</span>
-                            <span>{subject.score}%</span>
-                          </div>
-                          <Progress
-                            value={subject.score}
-                            className="h-2"
-                            indicatorClassName={cn(
-                              subject.score >= 90 ? "bg-emerald-500" :
-                              subject.score >= 80 ? "bg-blue-500" :
-                              subject.score >= 70 ? "bg-amber-500" :
-                              "bg-rose-500"
-                            )}
-                          />
-                          <div className="flex items-center justify-between text-xs text-gray-500">
-                            <span>Grade</span>
-                            <span className="font-medium">
-                              {subject.score >= 90 ? 'A+' :
-                               subject.score >= 80 ? 'A' :
-                               subject.score >= 70 ? 'B' :
-                               subject.score >= 60 ? 'C' : 'D'}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="mt-4 pt-4 border-t border-gray-100">
-                          <Link
-                            href={`/student/subjects/${subject.name.toLowerCase().replace(/\s+/g, '-')}`}
-                            className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                          >
-                            View Details
-                            <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform" />
-                          </Link>
-                        </div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </DashboardCard>
-          </motion.div>
-
-          {/* Bottom Section - Upcoming & Motivation */}
-          <motion.div variants={itemVariants} className="mt-8">
+          {/* Bottom Section - Upcoming & Motivation (kept, but secondary) */}
+          <motion.div variants={itemVariants} className="mt-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
               {/* Upcoming Deadlines */}
               <DashboardCard

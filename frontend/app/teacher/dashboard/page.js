@@ -11,6 +11,7 @@ import { useAuth } from '@/src/context/auth.context';
 import { StatCard } from '@/src/components/dashboard/StatCard';
 import { DashboardCard } from '@/src/components/dashboard/DashboardCard';
 import { StatCardSkeleton } from '@/src/components/dashboard/LoadingSkeleton';
+import { QuickAction } from '@/src/components/dashboard/QuickAction';
 import { NoticeBanner } from '@/src/components/notices/NoticeBanner';
 import { useDashboardNotices } from '@/src/hooks/useDashboardNotices';
 import {
@@ -53,43 +54,35 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-// Quick Actions – only routes that exist (no admin-only)
+// Focused teacher quick actions – align with brief
 const quickActions = [
   {
-    href: '/teacher/classes',
-    title: 'My Classes',
-    description: 'View your assigned classes',
-    icon: BookOpen,
-    color: 'from-blue-500 to-cyan-500',
-    bgColor: 'bg-gradient-to-br from-blue-50 to-cyan-50',
-    badgeColor: 'bg-blue-100 text-blue-800',
-  },
-  {
-    href: '/teacher/students',
-    title: 'Manage Students',
-    description: 'Create & update students',
-    icon: UserPlus,
-    color: 'from-emerald-500 to-teal-500',
-    bgColor: 'bg-gradient-to-br from-emerald-50 to-teal-50',
-    badgeColor: 'bg-emerald-100 text-emerald-800',
-  },
-  {
     href: '/teacher/attendance',
-    title: 'Mark Attendance',
-    description: 'Record daily attendance',
+    label: 'Mark Attendance',
+    description: 'Tap to mark today’s attendance',
     icon: UserCheck,
-    color: 'from-amber-500 to-orange-500',
-    bgColor: 'bg-gradient-to-br from-amber-50 to-orange-50',
-    badgeColor: 'bg-amber-100 text-amber-800',
+    accentClass: 'from-amber-500 to-orange-500',
   },
   {
-    href: '/teacher/marks',
-    title: 'Submit Marks',
-    description: 'Enter and review grades',
-    icon: Award,
-    color: 'from-purple-500 to-violet-500',
-    bgColor: 'bg-gradient-to-br from-purple-50 to-violet-50',
-    badgeColor: 'bg-purple-100 text-purple-800',
+    href: '/teacher/classes',
+    label: 'Upload Homework',
+    description: 'Assign homework from your class list',
+    icon: BookOpen,
+    accentClass: 'from-blue-500 to-cyan-500',
+  },
+  {
+    href: '/teacher/chat',
+    label: 'Student Messages',
+    description: 'Reply to questions and doubts',
+    icon: MessageCircle,
+    accentClass: 'from-emerald-500 to-teal-500',
+  },
+  {
+    href: '/notices',
+    label: 'View Notices',
+    description: 'School-wide announcements',
+    icon: FileText,
+    accentClass: 'from-purple-500 to-pink-500',
   },
 ];
 
@@ -224,8 +217,8 @@ export default function TeacherDashboard() {
             />
           </motion.div>
 
-          {/* Overview cards */}
-          <motion.div variants={itemVariants} className="mb-8">
+          {/* Overview cards – compact, at-a-glance */}
+          <motion.div variants={itemVariants} className="mb-6">
             <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
               <div>
                 <h2 className="text-xl lg:text-2xl font-bold text-gray-900 flex items-center gap-2">
@@ -246,7 +239,7 @@ export default function TeacherDashboard() {
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {stats.loading ? (
                 Array(4).fill(0).map((_, i) => <StatCardSkeleton key={i} />)
               ) : (
@@ -289,42 +282,27 @@ export default function TeacherDashboard() {
           </motion.div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-            {/* Quick Actions */}
+            {/* Quick Actions – today’s primary actions */}
             <motion.div variants={itemVariants} className="lg:col-span-2">
               <DashboardCard
-                title="Quick Actions"
-                description="Frequently used features"
+                title="What needs your action?"
+                description="Today’s most important shortcuts"
                 icon={Zap}
                 className="h-full"
                 headerClassName="border-b border-gray-200 pb-5"
                 iconColor="text-amber-600"
               >
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {quickActions.map((action) => {
-                    const Icon = action.icon;
-                    return (
-                      <Link
-                        key={action.href}
-                        href={action.href}
-                        className="group block p-5 rounded-[var(--app-radius-lg)] border border-[hsl(var(--app-border))] hover:shadow-[var(--app-shadow-lg)] bg-[hsl(var(--app-surface))] transition-all duration-300"
-                      >
-                        <div className="flex items-start gap-4">
-                          <div className={`p-3 rounded-xl ${action.bgColor}`}>
-                            <div className={`p-2 rounded-lg bg-gradient-to-br ${action.color} text-white`}>
-                              <Icon size={22} />
-                            </div>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-gray-900 mb-1">{action.title}</h3>
-                            <p className="text-sm text-gray-600 line-clamp-2">{action.description}</p>
-                            <span className="inline-flex items-center gap-1 mt-2 text-sm font-medium text-[hsl(var(--app-accent))]">
-                              Open <ArrowRight size={14} />
-                            </span>
-                          </div>
-                        </div>
-                      </Link>
-                    );
-                  })}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {quickActions.map((action) => (
+                    <QuickAction
+                      key={action.href}
+                      href={action.href}
+                      icon={action.icon}
+                      label={action.label}
+                      description={action.description}
+                      accentClass={action.accentClass}
+                    />
+                  ))}
                 </div>
               </DashboardCard>
             </motion.div>
