@@ -49,6 +49,7 @@ export const teacherService = {
   async getStudents(params = {}) {
     try {
       const response = await apiClient.get('/teacher/students', { params });
+      console.log(response)
       if (response.data.success) {
         return response.data.data;
       }

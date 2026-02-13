@@ -158,10 +158,16 @@ export function FeeSummaryCard({ feeDetails, loading = false }) {
               <span className="text-sm font-medium">Partially Paid</span>
             </div>
           )}
-          {status === 'UNPAID' && (
+          {(status === 'UNPAID' || status === 'DUE') && (
             <div className="flex items-center gap-2 text-gray-600">
               <AlertCircle className="h-4 w-4" />
               <span className="text-sm font-medium">Payment Pending</span>
+            </div>
+          )}
+          {status === 'OVERDUE' && (
+            <div className="flex items-center gap-2 text-red-600">
+              <AlertCircle className="h-4 w-4" />
+              <span className="text-sm font-medium">Overdue</span>
             </div>
           )}
         </div>

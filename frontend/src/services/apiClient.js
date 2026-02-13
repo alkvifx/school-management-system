@@ -30,7 +30,6 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Only clear auth on explicit 401 (token expired/invalid), not on network failure
     const status = error.response?.status;
     const isNetworkError = !error.response && (error.code === 'ECONNABORTED' || error.message === 'Network Error');
     if (status === 401 && !isNetworkError && typeof window !== 'undefined') {

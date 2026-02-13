@@ -20,6 +20,11 @@ export function FeeStatusBadge({ status, className }) {
       variant: 'outline',
       className: 'bg-gray-100 text-gray-700 border-gray-300',
     },
+    DUE: {
+      label: 'Due',
+      variant: 'outline',
+      className: 'bg-gray-100 text-gray-700 border-gray-300',
+    },
     OVERDUE: {
       label: 'Overdue',
       variant: 'destructive',

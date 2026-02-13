@@ -44,13 +44,16 @@ export function PaymentHistory({ payments, loading = false }) {
   }
 
   const getPaymentModeBadge = (mode) => {
+    const m = (mode || '').toUpperCase();
     const modes = {
       CASH: { label: 'Cash', className: 'bg-green-100 text-green-700' },
       ONLINE: { label: 'Online', className: 'bg-blue-100 text-blue-700' },
+      UPI: { label: 'UPI', className: 'bg-indigo-100 text-indigo-700' },
+      BANK: { label: 'Bank', className: 'bg-slate-100 text-slate-700' },
       CHEQUE: { label: 'Cheque', className: 'bg-purple-100 text-purple-700' },
       DD: { label: 'DD', className: 'bg-orange-100 text-orange-700' },
     };
-    return modes[mode] || { label: mode, className: 'bg-gray-100 text-gray-700' };
+    return modes[m] || { label: m || '—', className: 'bg-gray-100 text-gray-700' };
   };
 
   return (
@@ -76,7 +79,7 @@ export function PaymentHistory({ payments, loading = false }) {
                 return (
                   <TableRow key={payment._id || payment.id}>
                     <TableCell className="font-medium">
-                      {format(new Date(payment.paymentDate || payment.createdAt), 'PPp')}
+                      {format(new Date(payment.paidAt || payment.paymentDate || payment.createdAt), 'PPp')}
                     </TableCell>
                     <TableCell className="font-semibold">
                       ₹{payment.amount?.toLocaleString('en-IN')}

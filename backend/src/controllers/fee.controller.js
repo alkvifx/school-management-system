@@ -21,7 +21,6 @@ export const createFeeStructure = asyncHandler(async (req, res) => {
     });
   }
 
-
   if (!["MONTHLY", "QUARTERLY", "YEARLY"].includes(feeType)) {
     return res.status(400).json({
       success: false,
@@ -29,8 +28,14 @@ export const createFeeStructure = asyncHandler(async (req, res) => {
     });
   }
 
+  if (!principal?.schoolId) {
+    return res.status(403).json({
+      success: false,
+      message: "Principal not assigned to any school",
+    });
+  }
 
-  // Normalize components - handle both array and object formats
+  // ---------------- NORMALIZE COMPONENTS ----------------
   let normalizedComponents = {
     tuitionFee: 0,
     examFee: 0,
@@ -39,49 +44,54 @@ export const createFeeStructure = asyncHandler(async (req, res) => {
   };
 
   if (Array.isArray(components)) {
-    // Frontend sends array format
+    if (components.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "At least one fee component is required",
+      });
+    }
+
     components.forEach((c) => {
-      if (c?.name && c.amount >= 0) {
-        const normalizedName = c.name
-          .toLowerCase()
-          .replace(/\s+/g, '')
-          .replace(/fee$/, 'Fee')
-          .replace(/^(\w)/, (m) => m.toLowerCase());
-        
-        // Map common variations to standard names
-        const nameMap = {
-          'tuitionfee': 'tuitionFee',
-          'tuition': 'tuitionFee',
-          'examfee': 'examFee',
-          'examinationfee': 'examFee',
-          'examination': 'examFee',
-          'transportfee': 'transportFee',
-          'transport': 'transportFee',
-          'otherfee': 'otherFee',
-          'other': 'otherFee',
-          'libraryfee': 'otherFee',
-          'sportsfee': 'otherFee',
-        };
-        
-        const mappedName = nameMap[normalizedName] || 'otherFee';
-        normalizedComponents[mappedName] = (normalizedComponents[mappedName] || 0) + Number(c.amount);
+      if (!c?.name) return;
+
+      const key = c.name.toLowerCase().replace(/\s+/g, '');
+      const amount = Number(c.amount) || 0;
+
+      const nameMap = {
+        tuitionfee: 'tuitionFee',
+        examinationfee: 'examFee',
+        examfee: 'examFee',
+        transportfee: 'transportFee',
+        otherfee: 'otherFee',
+        libraryfee: 'otherFee',
+        sportsfee: 'otherFee',
+      };
+
+      const mappedName = nameMap[key];
+
+      if (mappedName) {
+        normalizedComponents[mappedName] += amount;
+      } else {
+        normalizedComponents.otherFee += amount;
       }
     });
-  } else if (typeof components === 'object' && components !== null) {
-    // Backend/API sends object format
+  } 
+  else if (typeof components === 'object' && components !== null) {
     normalizedComponents = {
       tuitionFee: Number(components.tuitionFee) || 0,
       examFee: Number(components.examFee) || 0,
       transportFee: Number(components.transportFee) || 0,
       otherFee: Number(components.otherFee) || 0,
     };
-  } else {
+  } 
+  else {
     return res.status(400).json({
       success: false,
       message: "Fee components are required",
     });
   }
 
+  // ---------------- VALIDATION ----------------
   if (normalizedComponents.tuitionFee <= 0) {
     return res.status(400).json({
       success: false,
@@ -89,14 +99,7 @@ export const createFeeStructure = asyncHandler(async (req, res) => {
     });
   }
 
-  if (!principal.schoolId) {
-    return res.status(403).json({
-      success: false,
-      message: "Principal not assigned to any school",
-    });
-  }
-
-
+  // ---------------- CREATE FEE STRUCTURE ----------------
   const feeStructure = await feeService.createFeeStructure({
     schoolId: principal.schoolId,
     classId,
@@ -107,13 +110,13 @@ export const createFeeStructure = asyncHandler(async (req, res) => {
     lateFinePerDay: Number(lateFinePerDay) || 0,
   });
 
-
   res.status(201).json({
     success: true,
     message: "Fee structure created successfully",
     data: feeStructure,
   });
 });
+
 
 
 // @desc    Update fee structure
@@ -518,8 +521,16 @@ export const getMyFees = asyncHandler(async (req, res) => {
     });
   }
 
+  const schoolId = student.schoolId || user.schoolId;
+  if (!schoolId) {
+    return res.status(403).json({
+      success: false,
+      message: "Student not assigned to any school",
+    });
+  }
+
   const studentFees = await feeService.getStudentFees({
-    schoolId: user.schoolId,
+    schoolId,
     studentId: student._id,
     academicYear,
     status,
@@ -528,5 +539,66 @@ export const getMyFees = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     data: studentFees,
+  });
+});
+
+// @desc    Get own fee details (combined structure + payment) for student dashboard
+// @route   GET /api/fees/student/me
+// @access  STUDENT only
+export const getStudentFeesMe = asyncHandler(async (req, res) => {
+  const user = req.user;
+
+  if (user.role !== "STUDENT") {
+    return res.status(403).json({
+      success: false,
+      message: "This endpoint is only for students",
+    });
+  }
+
+  const result = await feeService.getStudentFeesMe(user._id);
+
+  if (result.message && !result.feeStructure) {
+    return res.status(200).json({
+      success: true,
+      data: {
+        feeStructure: null,
+        payment: null,
+        class: result.student?.className ?? null,
+        academicYear: result.academicYear ?? null,
+        message: result.message,
+      },
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    data: {
+      feeStructure: result.feeStructure,
+      payment: result.payment,
+      class: result.student?.className ?? null,
+      academicYear: result.academicYear ?? null,
+      dueDate: result.dueDate ?? null,
+    },
+  });
+});
+
+// @desc    Get lightweight fee status for student dashboard banner
+// @route   GET /api/fees/student/status
+// @access  STUDENT only
+export const getStudentFeeStatus = asyncHandler(async (req, res) => {
+  const user = req.user;
+
+  if (user.role !== "STUDENT") {
+    return res.status(403).json({
+      success: false,
+      message: "This endpoint is only for students",
+    });
+  }
+
+  const status = await feeService.getStudentFeeStatus(user._id);
+
+  res.status(200).json({
+    success: true,
+    data: status,
   });
 });

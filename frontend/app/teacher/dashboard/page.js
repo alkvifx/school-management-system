@@ -11,6 +11,8 @@ import { useAuth } from '@/src/context/auth.context';
 import { StatCard } from '@/src/components/dashboard/StatCard';
 import { DashboardCard } from '@/src/components/dashboard/DashboardCard';
 import { StatCardSkeleton } from '@/src/components/dashboard/LoadingSkeleton';
+import { NoticeBanner } from '@/src/components/notices/NoticeBanner';
+import { useDashboardNotices } from '@/src/hooks/useDashboardNotices';
 import {
   BookOpen,
   Users,
@@ -150,6 +152,13 @@ export default function TeacherDashboard() {
     }
   };
 
+  // Fetch dashboard notices with polling every 120 seconds and refetch on focus
+  const { notices, loading: noticesLoading } = useDashboardNotices({
+    pollInterval: 120000, // 120 seconds
+    refetchOnFocus: true,
+    limit: 3,
+  });
+
   useEffect(() => {
     fetchDashboardData();
   }, []);
@@ -205,6 +214,14 @@ export default function TeacherDashboard() {
                 </Avatar>
               </div>
             </div>
+          </motion.div>
+
+          {/* Notice Banner */}
+          <motion.div variants={itemVariants} className="mb-6">
+            <NoticeBanner
+              notices={notices}
+              loading={noticesLoading}
+            />
           </motion.div>
 
           {/* Overview cards */}

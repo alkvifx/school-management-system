@@ -183,6 +183,8 @@ export const createNotice = asyncHandler(async (req, res) => {
     teacherId: teacherId || null,
     createdBy: principal._id,
     isImportant: !!isImportant,
+    isActive: true, // New notices are active by default
+    priority: isImportant ? "URGENT" : "INFO", // Map isImportant to priority
     attachments: Array.isArray(attachments) ? attachments : [],
     expiresAt: expiresAt ? new Date(expiresAt) : null,
     readBy: [],
@@ -233,6 +235,114 @@ export const createNotice = asyncHandler(async (req, res) => {
     success: true,
     message: "Notice created successfully",
     data: populated,
+  });
+});
+
+/**
+ * @desc    Get latest notices for dashboard banner (Teacher/Student only)
+ * @route   GET /api/notices/dashboard
+ * @access  TEACHER | STUDENT
+ */
+export const getDashboardNotices = asyncHandler(async (req, res) => {
+  const user = req.user;
+  const { limit = 3 } = req.query;
+
+  if (user.role !== "TEACHER" && user.role !== "STUDENT") {
+    return res.status(403).json({
+      success: false,
+      message: "This endpoint is only for teachers and students",
+    });
+  }
+
+  if (!user.schoolId) {
+    return res.status(403).json({
+      success: false,
+      message: "User not assigned to any school",
+    });
+  }
+
+  const limitNum = Math.min(5, Math.max(1, parseInt(limit, 10) || 3));
+  const now = new Date();
+
+  // Build query based on role
+  let query = {
+    schoolId: user.schoolId,
+    isActive: true,
+    $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }],
+  };
+
+  if (user.role === "TEACHER") {
+    query.$and = [
+      {
+        $or: [
+          { targetRole: "ALL" },
+          { targetRole: "TEACHER", teacherId: null },
+          { teacherId: user._id },
+        ],
+      },
+    ];
+  } else if (user.role === "STUDENT") {
+    const student = await Student.findOne({
+      userId: user._id,
+      schoolId: user.schoolId,
+      isActive: true,
+    })
+      .select("classId")
+      .lean();
+
+    const classId = student?.classId || null;
+    const orConditions = [
+      { targetRole: "ALL", classId: null },
+      { targetRole: "STUDENT", studentId: null, classId: null },
+      { studentId: user._id },
+    ];
+
+    if (classId) {
+      orConditions.push({ classId, targetRole: { $in: ["STUDENT", "ALL"] } });
+    }
+
+    query.$and = [{ $or: orConditions }];
+  }
+
+  const notices = await Notice.find(query)
+    .select("_id title message priority isImportant targetRole classId createdAt expiresAt")
+    .populate("classId", "name section")
+    .sort({ createdAt: -1 }) // Newest first
+    .limit(limitNum * 2) // Get more to sort by priority
+    .lean();
+
+  // Sort by priority: URGENT first, then INFO, then by createdAt
+  notices.sort((a, b) => {
+    const priorityA = a.priority || (a.isImportant ? "URGENT" : "INFO");
+    const priorityB = b.priority || (b.isImportant ? "URGENT" : "INFO");
+    
+    if (priorityA === "URGENT" && priorityB !== "URGENT") return -1;
+    if (priorityA !== "URGENT" && priorityB === "URGENT") return 1;
+    
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
+
+  // Limit to requested number after sorting
+  const limitedNotices = notices.slice(0, limitNum);
+
+  // Map isImportant to priority for backward compatibility
+  const formatted = limitedNotices.map((notice) => ({
+    _id: notice._id,
+    title: notice.title,
+    message: notice.message,
+    priority: notice.priority || (notice.isImportant ? "URGENT" : "INFO"),
+    targetRole: notice.targetRole,
+    classId: notice.classId,
+    className: notice.classId
+      ? `${notice.classId.name || ""} ${notice.classId.section || ""}`.trim()
+      : null,
+    createdAt: notice.createdAt,
+    expiresAt: notice.expiresAt,
+  }));
+
+  res.status(200).json({
+    success: true,
+    data: formatted,
   });
 });
 

@@ -407,3 +407,236 @@ export const getFeeStatistics = async (schoolId, classId = null, academicYear = 
 
   return stats;
 };
+
+/**
+ * Get current academic year string (e.g. "2024-25"). April–March cycle.
+ */
+export const getCurrentAcademicYear = () => {
+  return String(new Date().getFullYear());
+};
+
+
+/**
+ * Get combined fee structure + payment for the logged-in student (for GET /api/fees/student/me).
+ * If no FeePayment exists, returns computed values (totalAmount from structure, paidAmount 0, status DUE, lateFine if overdue).
+ * Always filters by schoolId from student document to avoid cross-school leakage.
+ */
+export const getStudentFeesMe = async (userId) => {
+  const student = await Student.findOne({ userId }).populate("classId", "name section");
+
+  if (!student) {
+    return { student: null, feeStructure: null, payment: null, message: "Student profile not found" };
+  }
+
+  const schoolId = student.schoolId;
+  const classId = student.classId?._id || student.classId;
+  const studentId = student._id;
+
+  console.log("[getStudentFeesMe] studentId:", studentId?.toString(), "schoolId:", schoolId?.toString(), "classId:", classId?.toString());
+
+  const academicYear = getCurrentAcademicYear();
+
+  const feeStructure = await FeeStructure.findOne({
+    schoolId,
+    classId,
+    academicYear,
+    isActive: true,
+  })
+    .populate("classId", "name section")
+    .sort({ feeType: 1, createdAt: -1 })
+    .lean();
+
+  if (!feeStructure) {
+    console.log("[getStudentFeesMe] No active fee structure for class", classId?.toString(), "academicYear", academicYear);
+    return {
+      student: { _id: student._id, classId: student.classId, className: student.classId ? `${student.classId.name || ""} ${student.classId.section || ""}`.trim() : null },
+      feeStructure: null,
+      payment: null,
+      academicYear,
+      message: "Fee structure not assigned yet",
+    };
+  }
+
+  console.log("[getStudentFeesMe] feeStructureId:", feeStructure._id?.toString());
+
+  let studentFee = await StudentFee.findOne({
+    schoolId,
+    studentId,
+    feeStructureId: feeStructure._id,
+  })
+    .populate("feeStructureId")
+    .lean();
+
+  const components = feeStructure.components || {};
+  const totalFromStructure =
+    (components.tuitionFee || 0) +
+    (components.examFee || 0) +
+    (components.transportFee || 0) +
+    (components.otherFee || 0);
+
+  const dueDate = feeStructure.dueDate ? new Date(feeStructure.dueDate) : null;
+  const now = new Date();
+  const lateFinePerDay = Number(feeStructure.lateFinePerDay) || 0;
+
+  if (!studentFee) {
+    let lateFine = 0;
+    if (dueDate && now > dueDate && lateFinePerDay > 0) {
+      const daysOverdue = Math.floor((now - dueDate) / (1000 * 60 * 60 * 24));
+      lateFine = daysOverdue * lateFinePerDay;
+    }
+    const totalAmount = totalFromStructure + lateFine;
+    const paidAmount = 0;
+    const dueAmount = totalAmount;
+    const status = totalAmount > 0 ? "DUE" : "PAID";
+
+    return {
+      student: { _id: student._id, classId: student.classId, className: student.classId ? `${student.classId.name || ""} ${student.classId.section || ""}`.trim() : null },
+      feeStructure: {
+        ...feeStructure,
+        className: feeStructure.classId
+          ? `${feeStructure.classId.name || ""} ${feeStructure.classId.section || ""}`.trim()
+          : null,
+      },
+      payment: {
+        totalAmount,
+        paidAmount,
+        dueAmount,
+        status,
+        lateFine,
+        transactions: [],
+      },
+      academicYear,
+      dueDate: dueDate ? dueDate.toISOString() : null,
+    };
+  }
+
+  const paidAmount = Number(studentFee.paidAmount) || 0;
+  const dueAmount = Number(studentFee.pendingAmount) ?? (Number(studentFee.totalAmount) - paidAmount);
+  const lateFine = Number(studentFee.lateFineApplied) || 0;
+  const status = studentFee.status; // PAID | PARTIAL | UNPAID | OVERDUE (frontend shows DUE for UNPAID/OVERDUE via badge)
+
+  const transactions = (studentFee.paymentHistory || []).map((t) => ({
+    _id: t._id,
+    amount: t.amount,
+    paymentMode: t.paymentMode,
+    referenceId: t.referenceId,
+    paidAt: t.paidAt,
+    paidBy: t.paidBy,
+  }));
+
+  console.log("[getStudentFeesMe] studentFeeId:", studentFee._id?.toString(), "status:", status);
+
+  return {
+    student: { _id: student._id, classId: student.classId, className: student.classId ? `${student.classId.name || ""} ${student.classId.section || ""}`.trim() : null },
+    feeStructure: {
+      ...feeStructure,
+      className: feeStructure.classId
+        ? `${feeStructure.classId.name || ""} ${feeStructure.classId.section || ""}`.trim()
+        : null,
+    },
+    payment: {
+      totalAmount: Number(studentFee.totalAmount) || totalFromStructure,
+      paidAmount,
+      dueAmount,
+      status,
+      lateFine,
+      transactions,
+    },
+    academicYear,
+    dueDate: studentFee.dueDate ? new Date(studentFee.dueDate).toISOString() : (dueDate ? dueDate.toISOString() : null),
+  };
+};
+
+/**
+ * Get lightweight fee status for student dashboard banner.
+ * Returns only: status, dueAmount, dueDate, lateFine.
+ * Optimized query - only fetches minimal fields needed.
+ */
+export const getStudentFeeStatus = async (userId) => {
+  const student = await Student.findOne({ userId }).select("_id schoolId classId").lean();
+
+  if (!student) {
+    return { status: "DUE", dueAmount: 0, dueDate: null, lateFine: 0 };
+  }
+
+  const schoolId = student.schoolId;
+  const classId = student.classId;
+  const studentId = student._id;
+  const academicYear = getCurrentAcademicYear();
+
+  // Find active fee structure for current academic year
+  const feeStructure = await FeeStructure.findOne({
+    schoolId,
+    classId,
+    academicYear,
+    isActive: true,
+  })
+    .select("_id dueDate lateFinePerDay components totalAmount academicYear")
+    .lean();
+
+  if (!feeStructure) {
+    return { status: "DUE", dueAmount: 0, dueDate: null, lateFine: 0, noStructure: true };
+  }
+
+  // Find student fee record (if exists)
+  const studentFee = await StudentFee.findOne({
+    schoolId,
+    studentId,
+    feeStructureId: feeStructure._id,
+  })
+    .select("paidAmount pendingAmount status lateFineApplied dueDate")
+    .lean();
+
+  const dueDate = feeStructure.dueDate ? new Date(feeStructure.dueDate) : null;
+  const now = new Date();
+  const lateFinePerDay = Number(feeStructure.lateFinePerDay) || 0;
+
+  if (!studentFee) {
+    // No payment record - infer DUE status
+    let lateFine = 0;
+    if (dueDate && now > dueDate && lateFinePerDay > 0) {
+      const daysOverdue = Math.floor((now - dueDate) / (1000 * 60 * 60 * 24));
+      lateFine = daysOverdue * lateFinePerDay;
+    }
+    const components = feeStructure.components || {};
+    const totalAmount =
+      (components.tuitionFee || 0) +
+      (components.examFee || 0) +
+      (components.transportFee || 0) +
+      (components.otherFee || 0) +
+      lateFine;
+
+    return {
+      status: totalAmount > 0 ? "DUE" : "PAID",
+      dueAmount: totalAmount,
+      dueDate: dueDate ? dueDate.toISOString() : null,
+      lateFine,
+    };
+  }
+
+  // Has payment record
+  const paidAmount = Number(studentFee.paidAmount) || 0;
+  const pendingAmount = Number(studentFee.pendingAmount) ?? 0;
+  const lateFine = Number(studentFee.lateFineApplied) || 0;
+  let status = studentFee.status; // PAID | PARTIAL | UNPAID | OVERDUE
+
+  // Normalize status for frontend
+  if (status === "PAID") {
+    status = "PAID";
+  } else if (status === "PARTIAL") {
+    status = "PARTIAL";
+  } else {
+    status = "DUE"; // UNPAID or OVERDUE -> DUE
+  }
+
+  return {
+    status,
+    dueAmount: pendingAmount,
+    dueDate: studentFee.dueDate
+      ? new Date(studentFee.dueDate).toISOString()
+      : dueDate
+      ? dueDate.toISOString()
+      : null,
+    lateFine,
+  };
+};

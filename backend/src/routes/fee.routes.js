@@ -7,6 +7,8 @@ import {
   initializeStudentFees,
   collectFee,
   getStudentFees,
+  getStudentFeesMe,
+  getStudentFeeStatus,
   getClassFees,
   getFeeDefaulters,
   sendFeeReminder,
@@ -101,6 +103,16 @@ router.get(
   getFeeStatistics
 );
 
+// ==================== STUDENT ROUTES (must be before /student/:studentId) ====================
+// Get lightweight fee status for dashboard banner
+router.get("/student/status", allowRoles("STUDENT"), getStudentFeeStatus);
+
+// Get own combined fee details (structure + payment) for student dashboard
+router.get("/student/me", allowRoles("STUDENT"), getStudentFeesMe);
+
+// Get own fees list (legacy)
+router.get("/my-fees", allowRoles("STUDENT"), getMyFees);
+
 // ==================== PRINCIPAL, TEACHER & STUDENT ROUTES ====================
 // Get student fees (students can only view their own)
 router.get(
@@ -109,9 +121,5 @@ router.get(
   validateSchoolAccess,
   getStudentFees
 );
-
-// ==================== STUDENT ROUTES ====================
-// Get own fees
-router.get("/my-fees", allowRoles("STUDENT"), getMyFees);
 
 export default router;

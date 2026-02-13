@@ -207,6 +207,60 @@ export const feesService = {
   },
 
   /**
+   * Get lightweight fee status for dashboard banner (GET /api/fees/student/status).
+   * Returns { status, dueAmount, dueDate, lateFine }.
+   * @returns {Promise<{ status: 'PAID' | 'PARTIAL' | 'DUE', dueAmount: number, dueDate: string | null, lateFine: number }>}
+   */
+  async getFeeStatus() {
+    try {
+      const response = await apiClient.get('/fees/student/status');
+      if (response.data.success) {
+        return response.data.data;
+      }
+      throw new Error(response.data.message || 'Failed to fetch fee status');
+    } catch (error) {
+      if (error.response?.status === 403) {
+        throw new Error('You do not have permission to view fees.');
+      }
+      if (error.response?.status === 401) {
+        throw new Error('Please log in again.');
+      }
+      throw new Error(
+        error.response?.data?.message ||
+        error.message ||
+        'Failed to fetch fee status'
+      );
+    }
+  },
+
+  /**
+   * Get own fee details for logged-in student (GET /api/fees/student/me).
+   * Returns { feeStructure, payment, class, academicYear, dueDate } or message when no structure.
+   * @returns {Promise<{ feeStructure, payment, class, academicYear, dueDate, message? }>}
+   */
+  async getMyFeeDetails() {
+    try {
+      const response = await apiClient.get('/fees/student/me');
+      if (response.data.success) {
+        return response.data.data;
+      }
+      throw new Error(response.data.message || 'Failed to fetch fee details');
+    } catch (error) {
+      if (error.response?.status === 403) {
+        throw new Error('You do not have permission to view fees.');
+      }
+      if (error.response?.status === 401) {
+        throw new Error('Please log in again.');
+      }
+      throw new Error(
+        error.response?.data?.message ||
+        error.message ||
+        'Failed to fetch fee details'
+      );
+    }
+  },
+
+  /**
    * Get student fees (Principal/Teacher/Student)
    * @param {string} studentId
    * @param {object} filters - { academicYear, status }

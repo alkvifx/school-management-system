@@ -47,7 +47,7 @@ const QUICK_ACTIONS = [
   { label: 'Teachers', href: '/principal/teachers', icon: Users },
   { label: 'Fees', href: '/principal/fees', icon: FileText },
   { label: 'Results', href: '/principal/result-analysis', icon: TrendingUp },
-  { label: 'Chat', href: '/principal/ai', icon: MessageCircle },
+  { label: 'Ai Services', href: '/principal/ai', icon: MessageCircle },
 ];
 
 export default function PrincipalDashboard() {

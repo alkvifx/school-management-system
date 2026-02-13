@@ -11,6 +11,10 @@ import { leaderboardService } from '@/src/services/leaderboard.service';
 import { StatCard } from '@/src/components/dashboard/StatCard';
 import { DashboardCard } from '@/src/components/dashboard/DashboardCard';
 import { StatCardSkeleton } from '@/src/components/dashboard/LoadingSkeleton';
+import { FeesStatusBanner } from '@/src/components/fees/FeesStatusBanner';
+import { useStudentFeeStatus } from '@/src/hooks/useStudentFeeStatus';
+import { NoticeBanner } from '@/src/components/notices/NoticeBanner';
+import { useDashboardNotices } from '@/src/hooks/useDashboardNotices';
 import {
   ClipboardList,
   Award,
@@ -194,12 +198,26 @@ export default function StudentDashboard() {
   });
   const [activeTab, setActiveTab] = useState('overview');
   const [showNotifications, setShowNotifications] = useState(false);
+  const [dismissedFeeBanner, setDismissedFeeBanner] = useState(false);
   const [todaysSchedule, setTodaysSchedule] = useState([
     { time: '09:00', subject: 'Mathematics', room: 'Room 301', teacher: 'Mr. Sharma' },
     { time: '10:30', subject: 'Physics', room: 'Lab 202', teacher: 'Ms. Verma' },
     { time: '12:00', subject: 'English', room: 'Room 105', teacher: 'Mr. Johnson' },
     { time: '01:30', subject: 'Computer Science', room: 'Lab 303', teacher: 'Mr. Gupta' },
   ]);
+
+  // Fetch fee status with polling every 90 seconds and refetch on focus
+  const { status: feeStatus, loading: feeLoading, refetch: refetchFeeStatus } = useStudentFeeStatus({
+    pollInterval: 90000, // 90 seconds
+    refetchOnFocus: true,
+  });
+
+  // Fetch dashboard notices with polling every 120 seconds and refetch on focus
+  const { notices, loading: noticesLoading } = useDashboardNotices({
+    pollInterval: 120000, // 120 seconds
+    refetchOnFocus: true,
+    limit: 3,
+  });
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -378,6 +396,25 @@ export default function StudentDashboard() {
               <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-white/5 to-transparent rounded-full translate-y-32 -translate-x-32" />
               <div className="absolute top-1/2 left-1/2 w-32 h-32 bg-white/5 rounded-full blur-3xl" />
             </div>
+          </motion.div>
+
+          {/* Fees Status Banner */}
+          {!dismissedFeeBanner && (
+            <motion.div variants={itemVariants} className="mb-6">
+              <FeesStatusBanner
+                status={feeStatus}
+                loading={feeLoading}
+                onDismiss={() => setDismissedFeeBanner(true)}
+              />
+            </motion.div>
+          )}
+
+          {/* Notice Banner */}
+          <motion.div variants={itemVariants} className="mb-6">
+            <NoticeBanner
+              notices={notices}
+              loading={noticesLoading}
+            />
           </motion.div>
 
           {/* Stats Overview */}

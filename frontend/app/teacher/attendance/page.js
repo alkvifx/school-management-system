@@ -136,7 +136,9 @@ export default function AttendancePage() {
 
   const fetchStudents = async () => {
     try {
+      console.log("first")
       const data = await teacherService.getStudents();
+      console.log(data)
       const classStudents = (data || []).filter(
         (s) => s.classId?._id === selectedClass || s.classId === selectedClass
       );
@@ -243,6 +245,8 @@ export default function AttendancePage() {
     student.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     student.rollNumber?.toString().includes(searchQuery)
   );
+
+  // console.log(filteredStudents)
 
   const selectedClassData = classes.find(c => c._id === selectedClass || c.id === selectedClass);
 
@@ -583,12 +587,12 @@ export default function AttendancePage() {
                                           <Avatar className="h-9 w-9">
                                             <AvatarImage src={student.avatar} />
                                             <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
-                                              {student.name?.charAt(0) || 'S'}
+                                              {student.userId.name?.charAt(0) || 'S'}
                                             </AvatarFallback>
                                           </Avatar>
                                           <div>
                                             <p className="font-medium text-gray-900 truncate">
-                                              {student.name}
+                                              {student.userId.name}
                                             </p>
                                             <p className="text-xs text-gray-500">
                                               ID: {student._id?.substring(0, 8) || student.id?.substring(0, 8)}

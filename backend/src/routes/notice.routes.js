@@ -2,6 +2,7 @@ import express from "express";
 import {
   createNotice,
   getMyNotices,
+  getDashboardNotices,
   markNoticeAsRead,
   markAllNoticesAsRead,
   deleteNotice,
@@ -15,6 +16,9 @@ const router = express.Router();
 // All routes require auth
 router.use(protect);
 router.use(validateSchoolAccess);
+
+// GET /api/notices/dashboard - Latest notices for dashboard banner (Teacher/Student only)
+router.get("/dashboard", allowRoles("TEACHER", "STUDENT"), getDashboardNotices);
 
 // GET /api/notices/me - Notices for current user (Principal: sent; Teacher/Student: received)
 router.get("/me", allowRoles("PRINCIPAL", "TEACHER", "STUDENT"), getMyNotices);

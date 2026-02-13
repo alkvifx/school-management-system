@@ -2,6 +2,36 @@ import apiClient from './apiClient';
 
 export const noticeService = {
   /**
+   * Get latest notices for dashboard banner (Teacher/Student only)
+   * @param {object} params - { limit }
+   * @returns {Promise<Array>}
+   */
+  async getDashboardNotices(params = {}) {
+    try {
+      const { limit = 3 } = params;
+      const response = await apiClient.get('/notices/dashboard', {
+        params: { limit },
+      });
+      if (response.data.success) {
+        return response.data.data;
+      }
+      throw new Error(response.data.message || 'Failed to fetch dashboard notices');
+    } catch (error) {
+      if (error.response?.status === 403) {
+        throw new Error('You do not have permission to view notices.');
+      }
+      if (error.response?.status === 401) {
+        throw new Error('Please log in again.');
+      }
+      throw new Error(
+        error.response?.data?.message ||
+        error.message ||
+        'Failed to fetch dashboard notices'
+      );
+    }
+  },
+
+  /**
    * Get notices for current user (Principal: sent; Teacher/Student: received)
    * @param {object} params - { page, limit, unreadOnly }
    * @returns {Promise<{ notices: Array, pagination: object }>}

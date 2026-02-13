@@ -46,6 +46,15 @@ const noticeSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    priority: {
+      type: String,
+      enum: ["INFO", "URGENT"],
+      default: "INFO",
+    },
     attachments: [
       {
         type: String, // file URLs
@@ -72,5 +81,9 @@ noticeSchema.index({ schoolId: 1, studentId: 1, createdAt: -1 });
 noticeSchema.index({ schoolId: 1, teacherId: 1, createdAt: -1 });
 noticeSchema.index({ createdBy: 1, createdAt: -1 });
 noticeSchema.index({ schoolId: 1, createdAt: -1 });
+// Dashboard query optimization
+noticeSchema.index({ schoolId: 1, isActive: 1, targetRole: 1, createdAt: -1 });
+noticeSchema.index({ schoolId: 1, isActive: 1, classId: 1, createdAt: -1 });
+noticeSchema.index({ schoolId: 1, isActive: 1, expiresAt: 1 });
 
 export default mongoose.model("Notice", noticeSchema);
