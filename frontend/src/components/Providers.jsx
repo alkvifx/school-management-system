@@ -9,15 +9,18 @@ import { PwaUpdateBanner } from './PwaUpdateBanner';
 import { OfflineBanner } from './OfflineBanner';
 import { useOnlineStatus } from '@/src/hooks/useOnlineStatus';
 
-function AppContent({ children }) {
-  const { isOnline, wasOffline } = useOnlineStatus();
-  const showOfflineBanner = !(!isOnline && wasOffline);
+function AppContent({ children, isOnline, showBackOnline }) {
+  const showBanner = !isOnline || showBackOnline;
 
   return (
     <main
       className="transition-[padding-top] duration-300 ease-out"
       style={{
-        paddingTop: showOfflineBanner ? '44px' : '0px',
+        // When banner is visible, reserve space for it + safe-area inset.
+        // When hidden, still respect safe-area inset on notch devices.
+        paddingTop: showBanner
+          ? 'calc(var(--app-top-banner-height, 44px) + env(safe-area-inset-top))'
+          : 'env(safe-area-inset-top)',
       }}
     >
       {children}
@@ -26,6 +29,9 @@ function AppContent({ children }) {
 }
 
 export function Providers({ children }) {
+  const { isOnline, wasOffline } = useOnlineStatus();
+  const showBackOnline = isOnline && wasOffline;
+
   return (
     <AuthProvider>
       <PwaInstallProvider>
@@ -34,10 +40,12 @@ export function Providers({ children }) {
 
         {/* Fixed top banners */}
         <PwaUpdateBanner />
-        <OfflineBanner />
+        <OfflineBanner isOnline={isOnline} showBackOnline={showBackOnline} />
 
         {/* Content gets pushed down */}
-        <AppContent>{children}</AppContent>
+        <AppContent isOnline={isOnline} showBackOnline={showBackOnline}>
+          {children}
+        </AppContent>
 
         <Toaster position="top-right" />
       </PwaInstallProvider>

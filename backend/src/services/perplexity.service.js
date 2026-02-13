@@ -45,7 +45,7 @@ function sanitizeMessage(message, maxLength = 500) {
  * @returns {Promise<{ content: string, error?: string }>}
  */
 export async function chatWithPerplexity({ message, role }) {
-  const apiKey = process.env.PERPLEXITY_API_KEY;
+  const apiKey = "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"
   if (!apiKey) {
     return { content: "", error: "Perplexity API key not configured" };
   }

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import {
   Menu,
   X,
@@ -33,6 +34,8 @@ import { SCHOOL_INFO } from '@/lib/data';
 import { usePwaInstall } from '@/src/hooks/usePwaInstall';
 
 const Navbar = () => {
+  const pathname = usePathname();
+
   const {
     isInstalled,
     supportsPrompt,
@@ -44,8 +47,6 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [hoveredLink, setHoveredLink] = useState(null);
-  const [activeDropdown, setActiveDropdown] = useState(null);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const navbarRef = useRef(null);
 
   useEffect(() => {
@@ -53,24 +54,18 @@ const Navbar = () => {
       setIsScrolled(window.scrollY > 50);
     };
 
-    const handleMouseMove = (e) => {
-      if (navbarRef.current) {
-        const rect = navbarRef.current.getBoundingClientRect();
-        setMousePosition({
-          x: e.clientX - rect.left,
-          y: e.clientY - rect.top
-        });
-      }
-    };
-
     window.addEventListener('scroll', handleScroll);
-    navbarRef.current?.addEventListener('mousemove', handleMouseMove);
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      navbarRef.current?.removeEventListener('mousemove', handleMouseMove);
     };
   }, []);
+
+  const isActivePath = (href) => {
+    if (!href) return false;
+    if (href === '/') return pathname === '/';
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
 
   const navLinks = [
     {
@@ -302,14 +297,6 @@ const Navbar = () => {
             : 'bg-white/90 backdrop-blur-lg'
         }`}
       >
-        {/* Interactive Background Effect */}
-        <motion.div
-          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
-          animate={{
-            background: `radial-gradient(600px at ${mousePosition.x}px ${mousePosition.y}px, rgba(59, 130, 246, 0.05) 0%, transparent 80%)`
-          }}
-        />
-
         <div className="container mx-auto px-4 relative z-10">
           <div className="flex justify-between items-center py-3">
             {/* Logo Section */}
@@ -386,7 +373,11 @@ const Navbar = () => {
                   >
                     <Link
                       href={link.href}
-                      className="relative px-5 py-3 flex items-center gap-2 text-gray-700 hover:text-blue-900 font-medium transition-colors group"
+                      className={`relative px-5 py-3 flex items-center gap-2 font-medium transition-colors group ${
+                        isActivePath(link.href)
+                          ? 'text-blue-900 border-b-2 border-blue-600'
+                          : 'text-gray-700 hover:text-blue-900 border-b-2 border-transparent'
+                      }`}
                     >
                       {/* Icon */}
                       <motion.div
@@ -413,24 +404,6 @@ const Navbar = () => {
                           </motion.span>
                         )}
                       </span>
-
-                      {/* Dropdown Arrow */}
-                      {link.dropdown && (
-                        <ChevronDown
-                          size={16}
-                          className={`transition-transform duration-300 ${
-                            activeDropdown === link.name ? 'rotate-180' : ''
-                          }`}
-                        />
-                      )}
-
-                      {/* Hover Line */}
-                      <motion.div
-                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-amber-500"
-                        initial={{ scaleX: 0 }}
-                        animate={{ scaleX: hoveredLink === link.name ? 1 : 0 }}
-                        transition={{ duration: 0.3 }}
-                      />
 
                       {/* Background Glow */}
                       <motion.div
@@ -480,15 +453,6 @@ const Navbar = () => {
                 );
               })}
 
-              {/* Active Link Indicator */}
-              <motion.div
-                className="absolute bottom-0 h-0.5 bg-gradient-to-r from-blue-500 to-amber-500 rounded-full"
-                animate={{
-                  x: navLinks.findIndex(link => hoveredLink === link.name) * 120,
-                  width: hoveredLink ? 100 : 0
-                }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              />
             </div>
 
             {/* Login Button - Desktop */}
