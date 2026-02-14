@@ -3,6 +3,7 @@
 import { AuthProvider } from '../context/auth.context';
 import { Toaster } from 'sonner';
 import { ServiceWorkerRegistration } from './ServiceWorkerRegistration';
+import { ErrorBoundary } from './ErrorBoundary';
 import { PwaViewport } from './PwaViewport';
 import { PwaInstallProvider } from '@/src/hooks/usePwaInstall';
 import { PwaUpdateBanner } from './PwaUpdateBanner';
@@ -43,9 +44,11 @@ export function Providers({ children }) {
         <OfflineBanner isOnline={isOnline} showBackOnline={showBackOnline} />
 
         {/* Content gets pushed down */}
-        <AppContent isOnline={isOnline} showBackOnline={showBackOnline}>
-          {children}
-        </AppContent>
+        <ErrorBoundary>
+          <AppContent isOnline={isOnline} showBackOnline={showBackOnline}>
+            {children}
+          </AppContent>
+        </ErrorBoundary>
 
         <Toaster position="top-right" />
       </PwaInstallProvider>

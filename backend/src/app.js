@@ -23,8 +23,13 @@ import publicRoutes from "./routes/public.routes.js";
 
 const app = express();
 
+// CORS: restrict origins in production when CLIENT_URLS is set
+const corsOrigins = process.env.CLIENT_URLS
+  ? process.env.CLIENT_URLS.split(',').map((u) => u.trim())
+  : true; // allow all in dev
+
 // Middleware
-app.use(cors());
+app.use(cors({ origin: corsOrigins, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
