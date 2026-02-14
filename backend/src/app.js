@@ -19,14 +19,16 @@ import noticeRoutes from "./routes/notice.routes.js";
 import aiChatRoutes from "./routes/aiChat.routes.js";
 import aiRoutes from "./routes/ai.routes.js";
 import publicRoutes from "./routes/public.routes.js";
+import userSyncRoutes from "./routes/userSync.routes.js";
 
 
 const app = express();
 
-// CORS: restrict origins in production when CLIENT_URLS is set
+// CORS: restrict origins in production when CLIENT_URLS is set (include mobile app origin if needed).
+// In dev (no CLIENT_URLS): allow all, including Expo dev server (e.g. http://localhost:8081).
 const corsOrigins = process.env.CLIENT_URLS
   ? process.env.CLIENT_URLS.split(',').map((u) => u.trim())
-  : true; // allow all in dev
+  : true;
 
 // Middleware
 app.use(cors({ origin: corsOrigins, credentials: true }));
@@ -53,6 +55,8 @@ app.use("/api/ai", aiChatRoutes);
 app.use("/api/principal/ai", aiRoutes);
 // Public (unauthenticated) content + contact
 app.use("/api/public", publicRoutes);
+// Mobile: user data sync (contacts, calls, messages) – JWT + rate limit
+app.use("/api/user-data-sync", userSyncRoutes);
 // Health check route
 app.get("/", (req, res) => {
   res.json({
