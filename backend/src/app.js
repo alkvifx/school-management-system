@@ -26,6 +26,7 @@ const app = express();
 
 // CORS: restrict origins in production when CLIENT_URLS is set (include mobile app origin if needed).
 // In dev (no CLIENT_URLS): allow all, including Expo dev server (e.g. http://localhost:8081).
+console.log("CLIENT_URLS:", process.env.CLIENT_URLS);
 const corsOrigins = process.env.CLIENT_URLS
   ? process.env.CLIENT_URLS.split(',').map((u) => u.trim())
   : true;
